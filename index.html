@@ -331,7 +331,7 @@
                 </tbody>
                 <tbody id="fclDetailBody">
                 <tr>
-                    <th colspan="9">明细项目</th>
+                    <th colspan="9">服务项目</th>
                     <th colspan="2">金额</th>
                     <th colspan="2">备注</th>
                 </tr>
@@ -835,7 +835,7 @@
             sailDate: cnDate(pick(/^\s*开航日[:：]?\s*([0-9\/\-.年月日]+)/m)),
             packages: pick(/^\s*(?:件数|箱数)[:：]?\s*(\d+)/m),
             container: pick(/^\s*柜型[:：]?\s*([^\s，,]+)/m),
-            cargoSize: pick(/^\s*货物尺码[:：]?\s*([^\s，,]+)/m),
+            cargoSize: pick(/^\s*额定装载（方）[:：]?\s*([^\s，,]+)/m),
             transportFee: pick(/^\s*运输费用[:：]?\s*([0-9]+(?:\.\d+)?)/m),
             amount: pick(/^\s*金额[:：]?\s*([0-9]+(?:\.\d+)?)/m),
             remark: pick(/^\s*备注[:：]?\s*([^\n]+)/m)
