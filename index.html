@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HGCD智能货运费用生成系统 v3.9</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --main-purple: #5d5bd4; --bg-gray: #f0f2f5; }
+        body { font-family: "PingFang SC", "Helvetica Neue", Arial, sans-serif; background: var(--bg-gray); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .tab-content { display: none; padding: 20px 20px 80px; flex: 1; overflow-y: auto; }
+        .tab-content.active { display: block; }
+        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 56px; background: #fff; display: flex; border-top: 1px solid #e0e0e0; z-index: 9999; }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #8a8a8a; font-size: 11px; cursor: pointer; }
+        .tab-item.active { color: var(--main-purple); font-weight: bold; }
+        .btn-clear { background: #e74c3c; }
+
+        /* 配置面板 */
+        .config-panel { 
+            max-width: 1200px; 
+            margin: 0 auto 30px; 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .config-header { grid-column: 1 / -1; border-bottom: 2px solid var(--bg-gray); padding-bottom: 10px; margin-bottom: 10px; }
+        .config-header h3 { margin: 0; color: var(--main-purple); }
+
+        .input-item label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #555; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 100px; }
+        .input-wide { grid-column: 1 / -1; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
+
+        .action-area { grid-column: 1 / -1; display: flex; gap: 15px; margin-top: 10px; }
+        button { flex: 1; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; color: white; transition: 0.2s; }
+        .btn-preview { background: var(--main-purple); }
+        .btn-pdf { background: #27ae60; }
+        .btn-csv { background: #2980b9; }
+
+        /* 预览区 - A4 比例 */
+        .report-container { display: flex; justify-content: center; padding-bottom: 50px; }
+        .report-wrap { 
+            width: 794px; 
+            background: white; 
+            padding: 60px 50px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); 
+            box-sizing: border-box; 
+            min-height: 1123px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .report-content { flex-grow: 1; }
+        .report-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; }
+        .brand { display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .logo-img { width: 45px; height: 45px; }
+        .logo-img img { width: 100%; height: 100%; object-fit: contain; }
+        .company-text { display: flex; flex-direction: column; align-items: center; }
+        .company-cn { font-size: 26px; font-weight: bold; margin: 0; }
+        .company-en { 
+            font-size: 9.5px; 
+            font-weight: bold; 
+            letter-spacing: 0.3px; 
+            max-width: 100%;
+            text-align: center;
+            line-height: 1.4;
+            word-break: break-all;
+            display: inline-block;
+        }
+        
+        .doc-name { text-align: center; font-size: 24px; font-weight: bold; margin: 40px 0; letter-spacing: 6px; text-decoration: underline; text-underline-offset: 10px; }
+        .meta-box { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px dashed #ccc; padding-bottom: 10px; }
+        
+        .route-info { background: #f8f9ff; border-left: 5px solid var(--main-purple); padding: 15px 20px; margin-bottom: 30px; }
+        .route-title { font-size: 18px; font-weight: bold; display: block; margin-bottom: 5px; }
+        .route-detail { font-size: 13px; color: #666; }
+
+        .main-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; table-layout: fixed; }
+        .main-table th { background: #f5f5f5; border: 1px solid #d0d0d0; padding: 12px 5px; font-size: 11px; }
+        .main-table td { border: 1px solid #d0d0d0; padding: 15px 5px; font-size: 12px; text-align: center; word-break: break-all; }
+        .sum-line { text-align: right; font-weight: bold; padding-right: 15px !important; }
+
+        .fee-table { width: 100%; border: 1px solid #000; margin-top: 20px; }
+        .fee-row { display: flex; border-bottom: 1px solid #000; }
+        .fee-row:last-child { border-bottom: none; }
+        .fee-head { width: 120px; background: #f5f5f5; padding: 15px; font-weight: bold; border-right: 1px solid #000; font-size: 14px; }
+        .fee-body { padding: 15px; flex: 1; font-size: 16px; }
+
+        .report-footer { text-align: center; margin-top: 50px; border-top: 1px solid #eee; padding-top: 15px; }
+        .footer-line-1 { font-size: 10px; color: #999; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .footer-line-2 { font-size: 9px; color: #bbb; }
+
+        /* 整柜费用确认单 */
+        .fcl-title { text-align: center; font-size: 18px; font-weight: bold; margin: 20px 0 10px; letter-spacing: 3px; }
+        .fcl-subline { text-align: center; font-size: 10px; color: #444; margin: 2px 0; }
+        .fcl-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+        .fcl-table th, .fcl-table td { border: 1px solid #000; padding: 6px 4px; text-align: center; word-break: break-all; }
+        .fcl-table td:first-child, .fcl-table th:first-child { white-space: nowrap; }
+        .fcl-table th { background: #f5f5f5; }
+        .fcl-amount { font-weight: bold; }
+        .fcl-detail-name { white-space: pre-wrap; text-align: left; padding-left: 6px; }
+        @media (max-width: 768px) {
+            .fcl-table { font-size: 9px; }
+            .fcl-table th, .fcl-table td { padding: 4px 2px; }
+        }
+        .fcl-wrap { width: 1123px; min-height: 794px; padding: 40px 40px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="tab-air" class="tab-content active">
+<div class="config-panel">
+    <div class="config-panel">
+        <div class="config-header"><h3>1. 散货费用单</h3></div>
+        <div class="form-grid">
+            <div class="input-item"><label>上传 Logo</label><input type="file" id="upLogo" accept="image/*"></div>
+            <div class="input-item"><label>公司中英名称</label>
+                <input type="text" id="inCn" value="深圳市恒基承达商务有限公司">
+                <input type="text" id="inEn" value="深圳市南山区南头街道大汪山社区桃园东路1号西海明珠花园F座2109-8" style="margin-top:5px">
+            </div>
+            <div class="input-item"><label>客户名称</label><input type="text" id="inCust" placeholder="客户姓名"></div>
+            <div class="input-item"><label>路线设置 (例如: 出发 → 目的地)</label><input type="text" id="inRoute" value="中国🇨🇳 → 日本🇯🇵"></div>
+            <div class="input-item"><label>运输方式</label><input type="text" id="inShip" value="空运"></div>
+            <div class="input-item"><label>表格备注 (含附加费)</label><input type="text" id="inTableNote" placeholder="例如：报关费100"></input></div>
+            <div class="input-item"><label>报价单价 (¥/kg)</label><input type="number" id="inPrice" value="" step="0.01"></div>
+            <div class="input-item input-wide"><label>智能识别信息</label><textarea id="inSmart" placeholder="在此粘贴单号、计费重、品名、件数等信息..."></textarea></div>
+        </div>
+        <div class="action-area">
+            <button class="btn-preview" onclick="doUpdate()">① 更新预览内容</button>
+            <button class="btn-pdf" onclick="processFile('pdf')">② 分享/下载 PDF</button>
+            <button class="btn-csv" onclick="processFile('csv')">③ 分享/下载 CSV</button>
+            <button class="btn-preview btn-clear" onclick="clearCache('air')">清除缓存</button>
+            <button class="btn-preview" onclick="addAirRow()">新增序号行</button>
+        </div>
+    </div>
+
+</div>
+
+<div class="report-container" id="view-air">
+    <div class="report-wrap" id="capture-area">
+        <div class="report-content">
+            <div class="report-header">
+                <div class="brand">
+                    <div class="logo-img" id="outLogo">HGCD</div>
+                    <div class="company-text">
+                        <div class="company-cn" id="outCn">深圳市恒基承达商务有限公司</div>
+                        <div class="company-en" id="outEn"> 深圳市南山区南头街道大汪山社区桃园东路1号西海明珠花园F座2109-8 </div>
+                    </div>
+                </div>
+            </div>
+            <h2 class="doc-name">散货费用确认单</h2>
+            <div class="meta-box">
+                <span><b>运单号：</b> <span id="outNo">-</span></span>
+                <span><b>日期：</b> <span id="outDate">-</span></span>
+            </div>
+            <div class="route-info">
+                <span class="route-title" id="outRoute">中国🇨🇳 → 日本🇯🇵</span>
+                <span class="route-detail" id="outDesc">运输方式：空运 | 客户：-</span>
+            </div>
+            <table class="main-table">
+                <colgroup>
+                    <col style="width:6%">
+                    <col style="width:18%">
+                    <col style="width:12%">
+                    <col style="width:12%">
+                    <col style="width:12%">
+                    <col style="width:8%">
+                    <col style="width:14%">
+                    <col style="width:18%">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th width="6%">序号</th>
+                        <th width="18%">单号</th>
+                        <th width="12%">体积(m³)</th>
+                        <th width="12%">毛重（KG）</th>
+                        <th width="12%">计费重</th>
+                        <th width="8%">件数</th>
+                        <th width="14%">品名</th>
+                        <th width="18%">备注</th>
+                    </tr>
+                </thead>
+                <tbody id="airMainBody">
+                    <tr><td>1</td><td>-</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0</td><td>-</td><td>-</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr><td colspan="8" class="sum-line" id="outSum">汇总：0件 / 0.00kg</td></tr>
+                </tfoot>
+            </table>
+            <div class="fee-table">
+                <div class="fee-row"><div class="fee-head">收费单价（RMB）</div><div class="fee-body" id="outUnitPrice">¥0.00 / kg</div></div>
+                <div class="fee-row"><div class="fee-head">应付合计（RMB）</div><div class="fee-body" style="font-weight:bold; font-size:20px; color:#d63031;" id="outTotal">¥0.00</div></div>
+            </div>
+        </div>
+        <div class="report-footer">
+            <div class="footer-line-1">此运单由系统自动生成，如有疑问请联系客服或者业务。</div>
+            <div class="footer-line-2">生成时间：<span id="outGenAt">-</span></div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div id="tab-fcl" class="tab-content">
+
+<div class="config-panel">
+    <div class="config-header"><h3>2. 整柜费用单</h3></div>
+    <div class="form-grid">
+        <div class="input-item input-wide"><label>智能识别信息</label><textarea id="fclSmart" placeholder="在此粘贴整柜信息，自动识别填入..."></textarea></div>
+        <div class="input-item"><label>客户编码</label><input type="text" id="fclCustCode" placeholder="客户编码"></div>
+        <div class="input-item"><label>公司</label><input type="text" id="fclCompany" placeholder="公司名称"></div>
+        <div class="input-item"><label>电话</label><input type="text" id="fclPhone" placeholder="电话"></div>
+        <div class="input-item"><label>装柜地址</label><input type="text" id="fclLoadAddr" placeholder="装柜地址"></div>
+        <div class="input-item"><label>收件地址</label><input type="text" id="fclRecvAddr" placeholder="收件地址"></div>
+        <div class="input-item"><label>账单编号</label><input type="text" id="fclBillNo" placeholder="账单编号"></div>
+        <div class="input-item"><label>币种</label><input type="text" id="fclCurrency" value="CNY"></div>
+        <div class="input-item"><label>货物类型</label></label><input type="text" id="fclVessel" placeholder="货物类型"></div>
+        <div class="input-item"><label>报价有效期</label><input type="text" id="fclBlNo" placeholder="报价有效期"></div>
+        <div class="input-item"><label>装柜日期</label><input type="text" id="fclLoadDate" placeholder="YYYY/M/D"></div>
+        <div class="input-item"><label>起运港</label><input type="text" id="fclPOL" placeholder="起运港"></div>
+        <div class="input-item"><label>目的港</label><input type="text" id="fclPOD" placeholder="目的港"></div>
+        <div class="input-item"><label>开航日</label><input type="text" id="fclSailDate" placeholder="YYYY/M/D"></div>
+        <div class="input-item"><label>件数</label><input type="text" id="fclPackages" placeholder="件数"></div>
+        <div class="input-item"><label>柜型</label><input type="text" id="fclContainer" placeholder="例如 1*20'GP"></div>
+        <div class="input-item"><label>额定装载（方）</label><input type="text" id="fclCargoSize" placeholder="额定装载"></div>
+        <div class="input-item"><label>运输费用</label><input type="number" id="fclTransportFee" placeholder="运输费用"></div>
+        <div class="input-item"><label>金额</label><input type="number" id="fclAmount" placeholder="金额"></div>
+        <div class="input-item"><label>备注</label><input type="text" id="fclRemark" placeholder="备注"></div>
+        <div class="input-item"><label>明细1（名称/金额）</label><input type="text" id="fclDetail1Name" placeholder="明细名称"><input type="number" id="fclDetail1Amt" placeholder="金额" style="margin-top:5px"></div>
+        <div class="input-item"><label>明细2（名称/金额）</label><input type="text" id="fclDetail2Name" placeholder="明细名称"><input type="number" id="fclDetail2Amt" placeholder="金额" style="margin-top:5px"></div>
+        <div class="input-item"><label>明细3（名称/金额）</label><input type="text" id="fclDetail3Name" placeholder="明细名称"><input type="number" id="fclDetail3Amt" placeholder="金额" style="margin-top:5px"></div>
+    </div>
+    <div class="action-area">
+        <button class="btn-preview" onclick="doUpdateFcl()">① 更新整柜预览</button>
+        <button class="btn-pdf" onclick="processFileFcl('pdf')">② 分享/下载 PDF</button>
+        <button class="btn-csv" onclick="processFileFcl('csv')">③ 分享/下载 CSV</button>
+        <button class="btn-preview btn-clear" onclick="clearCache('fcl')">清除缓存</button>
+        <button class="btn-preview" onclick="addFclRow()">新增序号行</button>
+        <button class="btn-preview" onclick="addFclDetailRow()">新增明细行</button>
+    </div>
+</div>
+
+<div class="report-container" id="view-fcl">
+    <div class="report-wrap fcl-wrap" id="capture-area-fcl">
+        <div class="report-content">
+            <div class="report-header">
+                <div class="brand">
+                    <div class="logo-img" id="outLogoFcl">HGCD</div>
+                    <div class="company-text">
+                        <div class="company-cn" id="outCnFcl">深圳市恒基承达商务有限公司</div>
+                        <div class="company-en" id="outEnFcl"> 深圳市南山区南头街道大汪山社区桃园东路1号西海明珠花园F座2109-8 </div>
+                    </div>
+                </div>
+            </div>
+            <div class="fcl-title">整柜费用报价单</div>
+            <table class="fcl-table">
+                <colgroup>
+                    <col style="width:8%">
+                    <col style="width:9%">
+                    <col style="width:10%">
+                    <col style="width:8%">
+                    <col style="width:8%">
+                    <col style="width:8%">
+                    <col style="width:8%">
+                    <col style="width:6%">
+                    <col style="width:8%">
+                    <col style="width:10%">
+                    <col style="width:8%">
+                    <col style="width:8%">
+                    <col style="width:9%">
+                </colgroup>
+                <tbody>
+                <tr>
+                    <th style="width:10%">客户编码</th>
+                    <td colspan="5" id="outFclCustCode">-</td>
+                    <th style="width:10%">公司</th>
+                    <td colspan="6" id="outFclCompany">-</td>
+                </tr>
+                <tr>
+                    <th>装柜地址</th>
+                    <td colspan="5" id="outFclLoadAddr">-</td>
+                    <th>电话</th>
+                    <td colspan="6" id="outFclPhone">-</td>
+                </tr>
+                <tr>
+                    <th>收件地址</th>
+                    <td colspan="5" id="outFclRecvAddr">-</td>
+                    <th>账单编号</th>
+                    <td colspan="4" id="outFclBillNo">-</td>
+                    <th>币种</th>
+                    <td id="outFclCurrency">CNY</td>
+                </tr>
+                </tbody>
+                <tbody>
+                <tr>
+                    <th>序号</th>
+                    <th>货物类型</th>
+                    <th>报价有效期</th>
+                    <th>装柜日期</th>
+                    <th>起运港</th>
+                    <th>目的港</th>
+                    <th>开航日</th>
+                    <th>件数</th>
+                    <th>柜型</th>
+                    <th>额定装载（方）</th>
+                    <th>运输费用</th>
+                    <th>金额</th>
+                    <th>备注</th>
+                </tr>
+                </tbody>
+                <tbody id="fclMainBody">
+                <tr>
+                    <td>1</td>
+                    <td id="outFclVessel">-</td>
+                    <td id="outFclBlNo">-</td>
+                    <td id="outFclLoadDate">-</td>
+                    <td id="outFclPOL">-</td>
+                    <td id="outFclPOD">-</td>
+                    <td id="outFclSailDate">-</td>
+                    <td id="outFclPackages">-</td>
+                    <td id="outFclContainer">-</td>
+                    <td id="outFclCargoSize">-</td>
+                    <td id="outFclTransportFee">-</td>
+                    <td id="outFclAmount" data-role="amount">-</td>
+                    <td id="outFclRemark">-</td>
+                </tr>
+                </tbody>
+                <tbody id="fclDetailBody">
+                <tr>
+                    <th colspan="9">明细项目</th>
+                    <th colspan="2">金额</th>
+                    <th colspan="2">备注</th>
+                </tr>
+                <tr>
+                    <td colspan="9" id="outFclDetail1Name" class="fcl-detail-name">-</td>
+                    <td colspan="2" class="fcl-amount" id="outFclDetail1Amt">-</td>
+                    <td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>
+                </tr>
+                <tr>
+                    <td colspan="9" id="outFclDetail2Name" class="fcl-detail-name">-</td>
+                    <td colspan="2" class="fcl-amount" id="outFclDetail2Amt">-</td>
+                    <td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>
+                </tr>
+                <tr>
+                    <td colspan="9" id="outFclDetail3Name" class="fcl-detail-name">-</td>
+                    <td colspan="2" class="fcl-amount" id="outFclDetail3Amt">-</td>
+                    <td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>
+                </tr>
+                </tbody>
+                <tbody>
+                <tr>
+                    <td colspan="10" class="fcl-amount" style="text-align:right;">合计（小写）：</td>
+                    <td colspan="2" class="fcl-amount" id="outFclTotal">-</td>
+                    <td></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="report-footer">
+            <div class="footer-line-1">此费用确认单由系统自动生成，如有疑问请联系客服或者业务。</div>
+            <div class="footer-line-2">生成时间：<span id="outGenAtFcl">-</span></div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('air')">散货费用单</div>
+    <div class="tab-item" onclick="switchTab('fcl')">整柜费用单</div>
+</div>
+
+<script>
+    let globalData = { cust: '客户', no: '单号', qty: 0 };
+    let fclData = { custCode: '-', company: '-', total: 0 };
+
+    const AIR_CACHE_KEY = "freight_air_cache_v1";
+    const FCL_CACHE_KEY = "freight_fcl_cache_v1";
+
+    function saveCache(type) {
+        try {
+            if (type === 'air') {
+                const payload = {
+                    inCn: document.getElementById('inCn').value,
+                    inEn: document.getElementById('inEn').value,
+                    inCust: document.getElementById('inCust').value,
+                    inRoute: document.getElementById('inRoute').value,
+                    inShip: document.getElementById('inShip').value,
+                    inSmart: document.getElementById('inSmart').value,
+                    inTableNote: document.getElementById('inTableNote').value,
+                    inPrice: document.getElementById('inPrice').value
+                };
+                localStorage.setItem(AIR_CACHE_KEY, JSON.stringify(payload));
+            } else {
+                const ids = [
+                    'fclSmart','fclCustCode','fclCompany','fclPhone','fclLoadAddr','fclRecvAddr','fclBillNo',
+                    'fclCurrency','fclVessel','fclBlNo','fclLoadDate','fclPOL','fclPOD','fclSailDate',
+                    'fclPackages','fclContainer','fclCargoSize','fclTransportFee','fclAmount','fclRemark',
+                    'fclDetail1Name','fclDetail1Amt','fclDetail2Name','fclDetail2Amt','fclDetail3Name','fclDetail3Amt'
+                ];
+                const payload = {};
+                ids.forEach(id => payload[id] = document.getElementById(id).value);
+                localStorage.setItem(FCL_CACHE_KEY, JSON.stringify(payload));
+            }
+        } catch (e) {}
+    }
+
+    function loadCache() {
+        try {
+            const air = localStorage.getItem(AIR_CACHE_KEY);
+            if (air) {
+                const v = JSON.parse(air);
+                Object.keys(v).forEach(k => { if (document.getElementById(k)) document.getElementById(k).value = v[k]; });
+            }
+            const fcl = localStorage.getItem(FCL_CACHE_KEY);
+            if (fcl) {
+                const v = JSON.parse(fcl);
+                Object.keys(v).forEach(k => { if (document.getElementById(k)) document.getElementById(k).value = v[k]; });
+            }
+        } catch (e) {}
+    }
+
+    function clearCache(type) {
+        if (type === 'air') {
+            localStorage.removeItem(AIR_CACHE_KEY);
+            const ids = ['inCn','inEn','inCust','inRoute','inShip','inSmart','inTableNote','inPrice'];
+            ids.forEach(id => { if (document.getElementById(id)) document.getElementById(id).value = ""; });
+            document.getElementById('inCn').value = "深圳市恒基承达商务有限公司";
+            document.getElementById('inEn').value = "深圳市南山区南头街道大汪山社区桃园东路1号西海明珠花园F座2109-8";
+        } else {
+            localStorage.removeItem(FCL_CACHE_KEY);
+            const ids = [
+                'fclSmart','fclCustCode','fclCompany','fclPhone','fclLoadAddr','fclRecvAddr','fclBillNo',
+                'fclCurrency','fclVessel','fclBlNo','fclLoadDate','fclPOL','fclPOD','fclSailDate',
+                'fclPackages','fclContainer','fclCargoSize','fclTransportFee','fclAmount','fclRemark',
+                'fclDetail1Name','fclDetail1Amt','fclDetail2Name','fclDetail2Amt','fclDetail3Name','fclDetail3Amt'
+            ];
+            ids.forEach(id => { if (document.getElementById(id)) document.getElementById(id).value = ""; });
+            document.getElementById('fclCurrency').value = "CNY";
+        }
+    }
+
+    function switchTab(type) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+        if (type === 'fcl') {
+            document.getElementById('tab-fcl').classList.add('active');
+            document.querySelectorAll('.tab-item')[1].classList.add('active');
+        } else {
+            document.getElementById('tab-air').classList.add('active');
+            document.querySelectorAll('.tab-item')[0].classList.add('active');
+        }
+    }
+
+    document.getElementById('upLogo').onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { 
+                document.getElementById('outLogo').innerHTML = `<img src="${ev.target.result}">`; 
+                document.getElementById('outLogoFcl').innerHTML = `<img src="${ev.target.result}">`; 
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    loadCache();
+
+    function doUpdate() {
+        const text = document.getElementById('inSmart').value;
+        const inputPriceVal = document.getElementById('inPrice').value;
+        const smartPriceMatch = text.match(/(?:报价单价|运费单价|单价|报价|价格)[:：]?\s*[¥￥]?\s*(\d+(\.\d+)?)(?:\s*\/\s*(?:kg|KG))?/);
+        const price = parseFloat(inputPriceVal || (smartPriceMatch ? smartPriceMatch[1] : "")) || 0;
+        if (!inputPriceVal && smartPriceMatch) {
+            document.getElementById('inPrice').value = price.toFixed(2);
+        }
+        const tableNote = document.getElementById('inTableNote').value || "";
+        const customRoute = document.getElementById('inRoute').value || "未填写路线";
+        
+        const orderNo = (text.match(/(?:HET|SHIP-|单号)[:：]?\s*([A-Z0-9\-]+)/i) || ["", ""])[1];
+        const billWeightMatch = text.match(/(?:计费重|计费重量)[:：]?\s*(\d+(\.\d+)?)(?:\s*(?:kg|KG|㎏))?/);
+        const actWeightMatch = text.match(/(?:实际重量|实重|重量)[:：]?\s*(\d+(\.\d+)?)(?:\s*(?:kg|KG|㎏))?/);
+        const billWeight = billWeightMatch ? parseFloat(billWeightMatch[1]) : null;
+        const actWeight = actWeightMatch ? parseFloat(actWeightMatch[1]) : 0;
+        const volume = (text.match(/(?:体积|实际体积)[:：]?\s*(\d+(\.\d+)?)/) || ["", "0.00"])[1];
+        const qtyMatch = text.match(/(?:件数|数量)[:：]?\s*(\d+)\s*件?/);
+        const qty = qtyMatch ? parseInt(qtyMatch[1]) : null;
+        const product = (text.match(/(?:品名)[:：]?\s*([^\s，,]+)/) || ["", ""])[1];
+
+        let extraFee = 0;
+        const feeMatch = tableNote.match(/\d+(\.\d+)?/);
+        if (feeMatch) extraFee = parseFloat(feeMatch[0]);
+        const total = ((billWeight || 0) * price) + extraFee;
+
+        globalData = { 
+            cust: document.getElementById('inCust').value || "客户", 
+            no: orderNo, 
+            vol: volume, 
+            actW: actWeight.toFixed(2), 
+            billW: billWeight !== null ? billWeight.toFixed(2) : "", 
+            qty: qty ?? 0, 
+            pro: product, 
+            note: tableNote,
+            price: price.toFixed(2),
+            total: total.toLocaleString('zh-CN', {minimumFractionDigits: 2})
+        };
+
+        // 更新预览内容
+        document.getElementById('outCn').innerText = document.getElementById('inCn').value;
+        document.getElementById('outEn').innerText = document.getElementById('inEn').value;
+        document.getElementById('outNo').innerText = orderNo;
+        document.getElementById('outDate').innerText = new Date().toLocaleDateString('zh-CN');
+        
+        // 更新路线为用户输入的内容
+        document.getElementById('outRoute').innerText = customRoute;
+        
+        document.getElementById('outDesc').innerText = `运输方式：${document.getElementById('inShip').value} | 客户：${globalData.cust}`;
+        const billWeightDisplay = billWeight !== null ? billWeight.toFixed(2) : "";
+        const qtyDisplay = qty !== null ? qty : "";
+        const body = document.getElementById('airMainBody');
+        const firstRow = body.querySelector('tr');
+        const rowHtml = `<td>1</td><td>${orderNo}</td><td>${volume}</td><td>${actWeight.toFixed(2)}</td><td>${billWeightDisplay}</td><td>${qtyDisplay}</td><td>${product}</td><td>${tableNote}</td>`;
+        if (firstRow) {
+            firstRow.innerHTML = rowHtml;
+        } else {
+            const tr = document.createElement('tr');
+            tr.innerHTML = rowHtml;
+            body.appendChild(tr);
+        }
+        updateAirSum();
+        document.getElementById('outGenAt').innerText = new Date().toLocaleString();
+        saveCache('air');
+    }
+
+    function updateAirSum() {
+        const rows = document.querySelectorAll('#airMainBody tr');
+        let qtySum = 0;
+        let billSum = 0;
+        rows.forEach(r => {
+            const cells = r.querySelectorAll('td');
+            const qty = parseNum(cells[5]?.textContent);
+            const bill = parseNum(cells[4]?.textContent);
+            qtySum += qty;
+            billSum += bill;
+        });
+        const qtyStr = qtySum ? qtySum : "";
+        const billStr = billSum ? billSum.toFixed(2) : "";
+        document.getElementById('outSum').innerText = `汇总：${qtyStr}${qtyStr ? "件" : ""} / ${billStr}${billStr ? "kg" : ""}`;
+        updateAirTotalFromRows(billSum);
+    }
+
+    function updateAirTotalFromRows(billSum) {
+        const price = parseFloat(document.getElementById('inPrice').value || "0") || 0;
+        const note = document.getElementById('inTableNote').value || "";
+        const feeMatch = note.match(/\d+(\.\d+)?/);
+        const extraFee = feeMatch ? parseFloat(feeMatch[0]) : 0;
+        const total = (billSum * price) + extraFee;
+        document.getElementById('outUnitPrice').innerText = `¥${price.toFixed(2)} / kg`;
+        document.getElementById('outTotal').innerText = `¥${total.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+        globalData.total = total.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+    }
+
+    function addAirRow() {
+        const body = document.getElementById('airMainBody');
+        const idx = body.querySelectorAll('tr').length + 1;
+        const tr = document.createElement('tr');
+        tr.innerHTML = [
+            `<td>${idx}</td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td><div contenteditable="true" data-role="remark"></div><button type="button" onclick="removeAirRow(this)">删除</button></td>`
+        ].join("");
+        body.appendChild(tr);
+        updateAirSum();
+    }
+
+    function removeAirRow(btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        tr.remove();
+        document.querySelectorAll('#airMainBody tr').forEach((row, i) => {
+            const cell = row.querySelector('td');
+            if (cell) cell.textContent = i + 1;
+        });
+        updateAirSum();
+    }
+
+    function doUpdateFcl() {
+        const smartText = document.getElementById('fclSmart').value || "";
+        const smart = parseSmartFcl(smartText);
+        // 将识别结果回填到输入框（不覆盖已有手动输入）
+        const fillIfEmpty = (id, val) => {
+            if (!val) return;
+            const el = document.getElementById(id);
+            if (el && !el.value) el.value = val;
+        };
+        fillIfEmpty('fclCustCode', smart.custCode);
+        fillIfEmpty('fclCompany', smart.company);
+        fillIfEmpty('fclPhone', smart.phone);
+        fillIfEmpty('fclLoadAddr', smart.loadAddr);
+        fillIfEmpty('fclRecvAddr', smart.recvAddr);
+        fillIfEmpty('fclBillNo', smart.billNo);
+        fillIfEmpty('fclCurrency', smart.currency);
+        fillIfEmpty('fclVessel', smart.vessel);
+        fillIfEmpty('fclBlNo', smart.blNo);
+        fillIfEmpty('fclLoadDate', smart.loadDate);
+        fillIfEmpty('fclPOL', smart.pol);
+        fillIfEmpty('fclPOD', smart.pod);
+        fillIfEmpty('fclSailDate', smart.sailDate);
+        fillIfEmpty('fclPackages', smart.packages);
+        fillIfEmpty('fclContainer', smart.container);
+        fillIfEmpty('fclCargoSize', smart.cargoSize);
+        fillIfEmpty('fclTransportFee', smart.transportFee);
+        fillIfEmpty('fclAmount', smart.amount);
+        fillIfEmpty('fclRemark', smart.remark);
+        fillIfEmpty('fclDetail1Name', smart.detail1Name);
+        fillIfEmpty('fclDetail1Amt', smart.detail1Amt);
+        fillIfEmpty('fclDetail2Name', smart.detail2Name);
+        fillIfEmpty('fclDetail2Amt', smart.detail2Amt);
+        fillIfEmpty('fclDetail3Name', smart.detail3Name);
+        fillIfEmpty('fclDetail3Amt', smart.detail3Amt);
+        const useSmart = smartText.trim().length > 0;
+        const map = {
+            fclCustCode: 'custCode',
+            fclCompany: 'company',
+            fclPhone: 'phone',
+            fclLoadAddr: 'loadAddr',
+            fclRecvAddr: 'recvAddr',
+            fclBillNo: 'billNo',
+            fclCurrency: 'currency',
+            fclVessel: 'vessel',
+            fclBlNo: 'blNo',
+            fclLoadDate: 'loadDate',
+            fclPOL: 'pol',
+            fclPOD: 'pod',
+            fclSailDate: 'sailDate',
+            fclPackages: 'packages',
+            fclContainer: 'container',
+            fclCargoSize: 'cargoSize',
+            fclRemark: 'remark',
+            fclDetail1Name: 'detail1Name',
+            fclDetail2Name: 'detail2Name',
+            fclDetail3Name: 'detail3Name'
+        };
+        const getVal = (id, fallback = "") => {
+            const inputVal = document.getElementById(id).value;
+            if (useSmart && smart[map[id]]) return smart[map[id]];
+            return inputVal || fallback;
+        };
+        const numVal = (id) => parseFloat(document.getElementById(id).value || "0") || 0;
+
+        const transportFee = numVal('fclTransportFee');
+        const detail1Amt = numVal('fclDetail1Amt');
+        const detail2Amt = numVal('fclDetail2Amt');
+        const detail3Amt = numVal('fclDetail3Amt');
+        const inputAmount = numVal('fclAmount');
+        const smartAmount = smart.amount ? parseFloat(smart.amount) : 0;
+        const smartTransportFee = smart.transportFee ? parseFloat(smart.transportFee) : 0;
+        const smartDetail1Amt = smart.detail1Amt ? parseFloat(smart.detail1Amt) : 0;
+        const smartDetail2Amt = smart.detail2Amt ? parseFloat(smart.detail2Amt) : 0;
+        const smartDetail3Amt = smart.detail3Amt ? parseFloat(smart.detail3Amt) : 0;
+        const rowAmount = inputAmount || smartAmount || transportFee || smartTransportFee || 0;
+
+        fclData = {
+            custCode: getVal('fclCustCode'),
+            company: getVal('fclCompany'),
+            phone: getVal('fclPhone'),
+            loadAddr: getVal('fclLoadAddr'),
+            recvAddr: getVal('fclRecvAddr'),
+            billNo: getVal('fclBillNo'),
+            currency: getVal('fclCurrency', 'CNY'),
+            vessel: getVal('fclVessel'),
+            blNo: getVal('fclBlNo'),
+            loadDate: getVal('fclLoadDate'),
+            pol: getVal('fclPOL'),
+            pod: getVal('fclPOD'),
+            sailDate: getVal('fclSailDate'),
+            packages: getVal('fclPackages'),
+            container: getVal('fclContainer'),
+            cargoSize: getVal('fclCargoSize'),
+            transportFee: transportFee ? transportFee.toFixed(2) : (smart.transportFee || ""),
+            amount: inputAmount ? inputAmount.toFixed(2) : (smart.amount || (transportFee ? transportFee.toFixed(2) : "")),
+            remark: getVal('fclRemark'),
+            detail1Name: getVal('fclDetail1Name'),
+            detail1Amt: detail1Amt ? detail1Amt.toFixed(2) : (smart.detail1Amt || ""),
+            detail2Name: getVal('fclDetail2Name'),
+            detail2Amt: detail2Amt ? detail2Amt.toFixed(2) : (smart.detail2Amt || ""),
+            detail3Name: getVal('fclDetail3Name'),
+            detail3Amt: detail3Amt ? detail3Amt.toFixed(2) : (smart.detail3Amt || ""),
+            total: ""
+        };
+
+        document.getElementById('outCnFcl').innerText = document.getElementById('inCn').value || "深圳市恒基承达商务有限公司";
+        document.getElementById('outEnFcl').innerText = document.getElementById('inEn').value || "";
+        const phoneHeader = document.getElementById('outPhoneFcl');
+        if (phoneHeader) phoneHeader.innerText = fclData.phone;
+
+        document.getElementById('outFclCustCode').innerText = fclData.custCode;
+        document.getElementById('outFclCompany').innerText = fclData.company;
+        document.getElementById('outFclLoadAddr').innerText = fclData.loadAddr;
+        document.getElementById('outFclPhone').innerText = fclData.phone;
+        document.getElementById('outFclRecvAddr').innerText = fclData.recvAddr;
+        document.getElementById('outFclBillNo').innerText = fclData.billNo;
+        document.getElementById('outFclCurrency').innerText = fclData.currency;
+        document.getElementById('outFclVessel').innerText = fclData.vessel;
+        document.getElementById('outFclBlNo').innerText = fclData.blNo;
+        document.getElementById('outFclLoadDate').innerText = fclData.loadDate;
+        document.getElementById('outFclPOL').innerText = fclData.pol;
+        document.getElementById('outFclPOD').innerText = fclData.pod;
+        document.getElementById('outFclSailDate').innerText = fclData.sailDate;
+        document.getElementById('outFclPackages').innerText = fclData.packages;
+        document.getElementById('outFclContainer').innerText = fclData.container;
+        document.getElementById('outFclCargoSize').innerText = fclData.cargoSize;
+        document.getElementById('outFclTransportFee').innerText = fclData.transportFee;
+        document.getElementById('outFclAmount').innerText = fclData.amount;
+        document.getElementById('outFclRemark').innerText = fclData.remark;
+        document.getElementById('outFclDetail1Name').innerText = fclData.detail1Name;
+        document.getElementById('outFclDetail1Amt').innerText = fclData.detail1Amt;
+        document.getElementById('outFclDetail2Name').innerText = fclData.detail2Name;
+        document.getElementById('outFclDetail2Amt').innerText = fclData.detail2Amt;
+        document.getElementById('outFclDetail3Name').innerText = fclData.detail3Name;
+        document.getElementById('outFclDetail3Amt').innerText = fclData.detail3Amt;
+        if (rowAmount) document.getElementById('outFclAmount').innerText = rowAmount.toFixed(2);
+        const computedTotal = updateFclTotalFromRows();
+        fclData.total = computedTotal;
+        document.getElementById('outGenAtFcl').innerText = new Date().toLocaleString();
+        saveCache('fcl');
+    }
+
+    function parseNum(val) {
+        const n = parseFloat(String(val || "").replace(/[^\d.]/g, ""));
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function updateFclTotalFromRows() {
+        const rows = document.querySelectorAll('#fclMainBody tr');
+        let total = 0;
+        rows.forEach(r => {
+            const cell = r.querySelector('[data-role="amount"]');
+            if (cell) total += parseNum(cell.textContent);
+        });
+        const totalStr = total ? total.toFixed(2) : "";
+        document.getElementById('outFclTotal').innerText = totalStr;
+        return totalStr;
+    }
+
+    function addFclRow() {
+        const body = document.getElementById('fclMainBody');
+        const idx = body.querySelectorAll('tr').length + 1;
+        const tr = document.createElement('tr');
+        const cols = [
+            `<td>${idx}</td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true"></td>`,
+            `<td contenteditable="true" data-role="amount"></td>`,
+            `<td><div contenteditable="true" data-role="remark"></div><button type="button" onclick="removeFclRow(this)">删除</button></td>`
+        ];
+        tr.innerHTML = cols.join("");
+        body.appendChild(tr);
+        updateFclTotalFromRows();
+    }
+
+    function removeFclRow(btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        tr.remove();
+        document.querySelectorAll('#fclMainBody tr').forEach((row, i) => {
+            const cell = row.querySelector('td');
+            if (cell) cell.textContent = i + 1;
+        });
+        updateFclTotalFromRows();
+    }
+
+    function addFclDetailRow() {
+        const body = document.getElementById('fclDetailBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = [
+            `<td colspan="9" contenteditable="true" class="fcl-detail-name"></td>`,
+            `<td colspan="2" class="fcl-amount" contenteditable="true"></td>`,
+            `<td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>`
+        ].join("");
+        body.appendChild(tr);
+    }
+
+    function removeFclDetailRow(btn) {
+        const tr = btn.closest('tr');
+        if (tr) tr.remove();
+    }
+
+    document.addEventListener('input', (e) => {
+        const inMain = e.target && e.target.closest && e.target.closest('#fclMainBody');
+        if (inMain && e.target.matches('[data-role="amount"]')) updateFclTotalFromRows();
+        const inAir = e.target && e.target.closest && e.target.closest('#airMainBody');
+        if (inAir) updateAirSum();
+    });
+
+    function parseSmartFcl(text) {
+        if (!text) return {};
+        const pick = (re) => {
+            const m = text.match(re);
+            return m ? m[1].trim() : "";
+        };
+        const cnDate = (s) => {
+            const m = s.match(/(\d{1,2})月(\d{1,2})日/);
+            return m ? `${m[1]}/${m[2]}` : s;
+        };
+        const data = {
+            custCode: pick(/^\s*客户编码[:：]?\s*([^\s，,]+)/m),
+            company: pick(/^\s*公司[:：]?\s*([^\n，,]+)/m),
+            phone: pick(/^\s*(?:电话|联系电话)[:：]?\s*([0-9\-+() ]{5,})/m),
+            loadAddr: pick(/^\s*装柜地址[:：]?\s*([^\n]+)/m),
+            recvAddr: pick(/^\s*收件地址[:：]?\s*([^\n]+)/m),
+            billNo: pick(/^\s*账单编号[:：]?\s*([^\s，,]+)/m),
+            currency: pick(/^\s*币种[:：]?\s*([A-Z]{3})/m),
+            vessel: pick(/^\s*船名航次[:：]?\s*([^\n]+)/m),
+            blNo: pick(/^\s*提单号[:：]?\s*([^\s，,]+)/m),
+            loadDate: cnDate(pick(/^\s*装柜日期[:：]?\s*([0-9\/\-.年月日]+)/m)),
+            pol: pick(/^\s*起运港[:：]?\s*([^\s，,]+)/m),
+            pod: pick(/^\s*目的港[:：]?\s*([^\s，,]+)/m),
+            sailDate: cnDate(pick(/^\s*开航日[:：]?\s*([0-9\/\-.年月日]+)/m)),
+            packages: pick(/^\s*(?:件数|箱数)[:：]?\s*(\d+)/m),
+            container: pick(/^\s*柜型[:：]?\s*([^\s，,]+)/m),
+            cargoSize: pick(/^\s*货物尺码[:：]?\s*([^\s，,]+)/m),
+            transportFee: pick(/^\s*运输费用[:：]?\s*([0-9]+(?:\.\d+)?)/m),
+            amount: pick(/^\s*金额[:：]?\s*([0-9]+(?:\.\d+)?)/m),
+            remark: pick(/^\s*备注[:：]?\s*([^\n]+)/m)
+        };
+
+        const exclude = new Set([
+            "运输费用", "金额", "账单编号", "客户编码", "公司", "联系电话", "装柜地址", "收件地址",
+            "币种", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "箱数",
+            "柜型", "额定装载（方）", "备注"
+        ]);
+        const detailMatches = [];
+        const re = /([A-Za-z\u4e00-\u9fa5+]+)\s*[:：]?\s*(\d+(?:\.\d+)?)/g;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            const name = m[1].trim();
+            if (!exclude.has(name)) detailMatches.push({ name, amt: m[2] });
+        }
+        if (detailMatches[0]) { data.detail1Name = detailMatches[0].name; data.detail1Amt = detailMatches[0].amt; }
+        if (detailMatches[1]) { data.detail2Name = detailMatches[1].name; data.detail2Amt = detailMatches[1].amt; }
+        if (detailMatches[2]) { data.detail3Name = detailMatches[2].name; data.detail3Amt = detailMatches[2].amt; }
+        return data;
+    }
+
+    async function processFile(type) {
+        if (!globalData.no || globalData.no === '单号') { alert("请先点击【更新预览内容】"); return; }
+        
+        const d = new Date();
+        const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
+        const fileName = `${globalData.cust}_${globalData.no}_${globalData.qty}件_报价单_${dateStr}.${type}`;
+        
+        let blob;
+        if (type === 'pdf') {
+            const element = document.getElementById('capture-area');
+            const canvas = await html2canvas(element, { scale: 2.5, useCORS: true });
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = (canvas.height * pageWidth) / canvas.width;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+            blob = pdf.output('blob');
+        } else {
+            const mainRows = Array.from(document.querySelectorAll('#airMainBody tr')).map((row) => {
+                const cells = Array.from(row.children);
+                const remarkCell = cells[cells.length - 1];
+                const remarkVal = remarkCell ? (remarkCell.querySelector('[data-role="remark"]')?.textContent.trim() || remarkCell.textContent.trim().replace("删除", "").trim()) : "";
+                const values = cells.map((td, i) => {
+                    if (i === cells.length - 1) return remarkVal;
+                    return td.textContent.trim();
+                });
+                return [globalData.cust, ...values, globalData.price, globalData.total];
+            });
+            if (mainRows.length === 0) {
+                mainRows.push([globalData.cust, "1", globalData.no, globalData.vol, globalData.actW, globalData.billW, globalData.qty, globalData.pro, globalData.note, globalData.price, globalData.total]);
+            }
+            const csvRows = [
+                ["客户名称", "序号", "运单号", "体积(m3)", "毛重(kg)", "计费重", "件数", "品名", "备注", "单价", "总计(元)"],
+                ...mainRows
+            ];
+            const csvString = "\ufeff" + csvRows.map(row => row.map(v => `"${v}"`).join(",")).join("\n");
+            blob = new Blob([csvString], { type: "text/csv;charset=utf-8" });
+        }
+
+        const file = new File([blob], fileName, { type: blob.type });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: fileName });
+            } catch (err) {
+                if (err.name !== 'AbortError') downloadLocal(blob, fileName);
+            }
+        } else {
+            downloadLocal(blob, fileName);
+        }
+    }
+
+    async function processFileFcl(type) {
+        if (!fclData.company || fclData.company === '-') { alert("请先点击【更新整柜预览】"); return; }
+
+        const d = new Date();
+        const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
+        const fileName = `${fclData.company}_整柜费用报价单_${dateStr}.${type}`;
+
+        let blob;
+        if (type === 'pdf') {
+            const element = document.getElementById('capture-area-fcl');
+            const canvas = await html2canvas(element, { scale: 2.5, useCORS: true });
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('l', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = (canvas.height * pageWidth) / canvas.width;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+            blob = pdf.output('blob');
+        } else {
+            const mainRows = Array.from(document.querySelectorAll('#fclMainBody tr')).map((row) => {
+                const cells = Array.from(row.children);
+                const remarkCell = cells[cells.length - 1];
+                const remarkVal = remarkCell ? (remarkCell.querySelector('[data-role="remark"]')?.textContent.trim() || remarkCell.textContent.trim().replace("删除", "").trim()) : "";
+                const values = cells.map((td, i) => {
+                    if (i === cells.length - 1) return remarkVal;
+                    return td.textContent.trim();
+                });
+                return [fclData.custCode, fclData.company, fclData.phone, fclData.loadAddr, fclData.recvAddr, fclData.billNo, fclData.currency, ...values];
+            });
+            if (mainRows.length === 0) {
+                mainRows.push([fclData.custCode, fclData.company, fclData.phone, fclData.loadAddr, fclData.recvAddr, fclData.billNo, fclData.currency, fclData.vessel, fclData.blNo, fclData.loadDate, fclData.pol, fclData.pod, fclData.sailDate, fclData.packages, fclData.container, fclData.cargoSize, fclData.transportFee, fclData.amount, fclData.remark]);
+            }
+            const csvRows = [
+                ["客户编码", "公司", "联系电话", "装柜地址", "收件地址", "账单编号", "币种", "序号", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "柜型", "额定装载", "运输费用", "金额", "备注", "明细1", "明细1金额", "明细2", "明细2金额", "明细3", "明细3金额", "合计"],
+                ...mainRows.map(r => [...r, fclData.detail1Name, fclData.detail1Amt, fclData.detail2Name, fclData.detail2Amt, fclData.detail3Name, fclData.detail3Amt, fclData.total])
+            ];
+            const csvString = "\ufeff" + csvRows.map(row => row.map(v => `"${v}"`).join(",")).join("\n");
+            blob = new Blob([csvString], { type: "text/csv;charset=utf-8" });
+        }
+
+        const file = new File([blob], fileName, { type: blob.type });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: fileName });
+            } catch (err) {
+                if (err.name !== 'AbortError') downloadLocal(blob, fileName);
+            }
+        } else {
+            downloadLocal(blob, fileName);
+        }
+    }
+
+    function downloadLocal(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
