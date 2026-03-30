@@ -108,10 +108,6 @@
         }
         .fcl-wrap { width: 1123px; min-height: 794px; padding: 40px 40px; }
         .hidden { display: none !important; }
-        .exporting #capture-area button,
-        .exporting #capture-area-fcl button {
-            display: none !important;
-        }
     </style>
 </head>
 <body>
@@ -222,7 +218,7 @@
         <div class="input-item"><label>收件地址</label><input type="text" id="fclRecvAddr" placeholder="收件地址"></div>
         <div class="input-item"><label>账单编号</label><input type="text" id="fclBillNo" placeholder="账单编号"></div>
         <div class="input-item"><label>币种</label><input type="text" id="fclCurrency" value="CNY"></div>
-        <div class="input-item"><label>货物类型</label></label><input type="text" id="fclVessel" placeholder="货物类型"></div>
+        <div class="input-item"><label>货物类型</label><input type="text" id="fclVessel" placeholder="货物类型"></div>
         <div class="input-item"><label>报价有效期</label><input type="text" id="fclBlNo" placeholder="报价有效期"></div>
         <div class="input-item"><label>装柜日期</label><input type="text" id="fclLoadDate" placeholder="YYYY/M/D"></div>
         <div class="input-item"><label>起运港</label><input type="text" id="fclPOL" placeholder="起运港"></div>
@@ -230,7 +226,7 @@
         <div class="input-item"><label>开航日</label><input type="text" id="fclSailDate" placeholder="YYYY/M/D"></div>
         <div class="input-item"><label>件数</label><input type="text" id="fclPackages" placeholder="件数"></div>
         <div class="input-item"><label>柜型</label><input type="text" id="fclContainer" placeholder="例如 1*20'GP"></div>
-        <div class="input-item"><label>额定装载（方）</label><input type="text" id="fclCargoSize" placeholder="额定装载"></div>
+        <div class="input-item"><label>额定装载（方）</label><input type="text" id="fclCargoSize" placeholder="额定装载（方）"></div>
         <div class="input-item"><label>运输费用</label><input type="number" id="fclTransportFee" placeholder="运输费用"></div>
         <div class="input-item"><label>金额</label><input type="number" id="fclAmount" placeholder="金额"></div>
         <div class="input-item"><label>备注</label><input type="text" id="fclRemark" placeholder="备注"></div>
@@ -260,7 +256,7 @@
                     </div>
                 </div>
             </div>
-            <div class="fcl-title">整柜费用报价单</div>
+            <div class="fcl-title">整柜费用确认单</div>
             <table class="fcl-table">
                 <colgroup>
                     <col style="width:8%">
@@ -335,7 +331,7 @@
                 </tbody>
                 <tbody id="fclDetailBody">
                 <tr>
-                    <th colspan="9">服务项目</th>
+                    <th colspan="9">服务类目</th>
                     <th colspan="2">金额</th>
                     <th colspan="2">备注</th>
                 </tr>
@@ -384,6 +380,31 @@
 
     const AIR_CACHE_KEY = "freight_air_cache_v1";
     const FCL_CACHE_KEY = "freight_fcl_cache_v1";
+    const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
+
+    async function exportPdfFromElement(element, fileName, orientation = 'p') {
+        const scale = isIOS ? 1.5 : 2.5;
+        const canvas = await html2canvas(element, { scale, useCORS: true, backgroundColor: "#ffffff" });
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF(orientation, 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = (canvas.height * pageWidth) / canvas.width;
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+        const blob = pdf.output('blob');
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
+            await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: fileName });
+            return;
+        }
+        if (isIOS) {
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            return;
+        }
+        downloadLocal(blob, fileName);
+    }
 
     function saveCache(type) {
         try {
@@ -772,7 +793,7 @@
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true" data-role="amount"></td>`,
-            `<td><div contenteditable="true" data-role="remark"></div><button type="button" class="no-export" onclick="removeFclRow(this)">删除</button></td>`
+            `<td><div contenteditable="true" data-role="remark"></div><button type="button" onclick="removeFclRow(this)">删除</button></td>`
         ];
         tr.innerHTML = cols.join("");
         body.appendChild(tr);
@@ -796,7 +817,7 @@
         tr.innerHTML = [
             `<td colspan="9" contenteditable="true" class="fcl-detail-name"></td>`,
             `<td colspan="2" class="fcl-amount" contenteditable="true"></td>`,
-            `<td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>`
+            `<td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>`
         ].join("");
         body.appendChild(tr);
     }
@@ -831,8 +852,8 @@
             recvAddr: pick(/^\s*收件地址[:：]?\s*([^\n]+)/m),
             billNo: pick(/^\s*账单编号[:：]?\s*([^\s，,]+)/m),
             currency: pick(/^\s*币种[:：]?\s*([A-Z]{3})/m),
-            vessel: pick(/^\s*船名航次[:：]?\s*([^\n]+)/m),
-            blNo: pick(/^\s*提单号[:：]?\s*([^\s，,]+)/m),
+            vessel: pick(/^\s*货物类型[:：]?\s*([^\n]+)/m),
+            blNo: pick(/^\s*报价有效期[:：]?\s*([^\s，,]+)/m),
             loadDate: cnDate(pick(/^\s*装柜日期[:：]?\s*([0-9\/\-.年月日]+)/m)),
             pol: pick(/^\s*起运港[:：]?\s*([^\s，,]+)/m),
             pod: pick(/^\s*目的港[:：]?\s*([^\s，,]+)/m),
@@ -873,14 +894,8 @@
         let blob;
         if (type === 'pdf') {
             const element = document.getElementById('capture-area');
-            const canvas = await html2canvas(element, { scale: 2.5, useCORS: true });
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = (canvas.height * pageWidth) / canvas.width;
-            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
-            blob = pdf.output('blob');
+            await exportPdfFromElement(element, fileName, 'p');
+            return;
         } else {
             const mainRows = Array.from(document.querySelectorAll('#airMainBody tr')).map((row) => {
                 const cells = Array.from(row.children);
@@ -917,41 +932,23 @@
     }
 
     async function processFileFcl(type) {
-        // 导出前强制更新一次，避免 fclData 未刷新导致拦截
+        // 确保先刷新一次预览数据
         doUpdateFcl();
+        const hasData = [
+            fclData.company, fclData.custCode, fclData.billNo, fclData.vessel,
+            fclData.blNo, fclData.loadDate, fclData.pol, fclData.pod
+        ].some(v => String(v || "").trim().length > 0);
+        if (!hasData) { alert("请先点击【更新整柜预览】"); return; }
 
-        const companyFromInput = (document.getElementById('fclCompany')?.value || "").trim();
-        const companyFromPreview = (document.getElementById('outFclCompany')?.textContent || "").trim();
-        const company = (fclData.company && fclData.company !== '-' ? fclData.company : companyFromInput || companyFromPreview).trim();
-        if (!company || company === '-') { alert("请先点击【更新整柜预览】"); return; }
-
-        const safeCompany = company.replace(/[\\/:*?"<>|]/g, "_");
         const d = new Date();
         const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
-        const fileName = `${safeCompany}_整柜费用报价单_${dateStr}.${type}`;
+        const fileName = `${fclData.company}_整柜费用确认单_${dateStr}.${type}`;
 
         let blob;
         if (type === 'pdf') {
             const element = document.getElementById('capture-area-fcl');
-            if (!element) { alert("未找到整柜预览区域"); return; }
-            try {
-                document.body.classList.add('exporting');
-                await new Promise(r => requestAnimationFrame(r));
-                const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-                const imgData = canvas.toDataURL('image/jpeg', 0.92);
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('l', 'mm', 'a4');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = (canvas.height * pageWidth) / canvas.width;
-                pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
-                blob = pdf.output('blob');
-            } catch (err) {
-                console.error(err);
-                alert("PDF 导出失败，请检查控制台错误信息");
-                return;
-            } finally {
-                document.body.classList.remove('exporting');
-            }
+            await exportPdfFromElement(element, fileName, 'l');
+            return;
         } else {
             const mainRows = Array.from(document.querySelectorAll('#fclMainBody tr')).map((row) => {
                 const cells = Array.from(row.children);
@@ -967,7 +964,7 @@
                 mainRows.push([fclData.custCode, fclData.company, fclData.phone, fclData.loadAddr, fclData.recvAddr, fclData.billNo, fclData.currency, fclData.vessel, fclData.blNo, fclData.loadDate, fclData.pol, fclData.pod, fclData.sailDate, fclData.packages, fclData.container, fclData.cargoSize, fclData.transportFee, fclData.amount, fclData.remark]);
             }
             const csvRows = [
-                ["客户编码", "公司", "联系电话", "装柜地址", "收件地址", "账单编号", "币种", "序号", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "柜型", "额定装载", "运输费用", "金额", "备注", "明细1", "明细1金额", "明细2", "明细2金额", "明细3", "明细3金额", "合计"],
+                ["客户编码", "公司", "联系电话", "装柜地址", "收件地址", "账单编号", "币种", "序号", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "柜型", "额定装载（方）", "运输费用", "金额", "备注", "明细1", "明细1金额", "明细2", "明细2金额", "明细3", "明细3金额", "合计"],
                 ...mainRows.map(r => [...r, fclData.detail1Name, fclData.detail1Amt, fclData.detail2Name, fclData.detail2Amt, fclData.detail3Name, fclData.detail3Amt, fclData.total])
             ];
             const csvString = "\ufeff" + csvRows.map(row => row.map(v => `"${v}"`).join(",")).join("\n");
