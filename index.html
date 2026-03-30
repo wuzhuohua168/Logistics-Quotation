@@ -108,6 +108,10 @@
         }
         .fcl-wrap { width: 1123px; min-height: 794px; padding: 40px 40px; }
         .hidden { display: none !important; }
+        .exporting #capture-area button,
+        .exporting #capture-area-fcl button {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -768,7 +772,7 @@
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true" data-role="amount"></td>`,
-            `<td><div contenteditable="true" data-role="remark"></div><button type="button" onclick="removeFclRow(this)">删除</button></td>`
+            `<td><div contenteditable="true" data-role="remark"></div><button type="button" class="no-export" onclick="removeFclRow(this)">删除</button></td>`
         ];
         tr.innerHTML = cols.join("");
         body.appendChild(tr);
@@ -792,7 +796,7 @@
         tr.innerHTML = [
             `<td colspan="9" contenteditable="true" class="fcl-detail-name"></td>`,
             `<td colspan="2" class="fcl-amount" contenteditable="true"></td>`,
-            `<td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>`
+            `<td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>`
         ].join("");
         body.appendChild(tr);
     }
@@ -913,23 +917,41 @@
     }
 
     async function processFileFcl(type) {
-        if (!fclData.company || fclData.company === '-') { alert("请先点击【更新整柜预览】"); return; }
+        // 导出前强制更新一次，避免 fclData 未刷新导致拦截
+        doUpdateFcl();
 
+        const companyFromInput = (document.getElementById('fclCompany')?.value || "").trim();
+        const companyFromPreview = (document.getElementById('outFclCompany')?.textContent || "").trim();
+        const company = (fclData.company && fclData.company !== '-' ? fclData.company : companyFromInput || companyFromPreview).trim();
+        if (!company || company === '-') { alert("请先点击【更新整柜预览】"); return; }
+
+        const safeCompany = company.replace(/[\\/:*?"<>|]/g, "_");
         const d = new Date();
         const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
-        const fileName = `${fclData.company}_整柜费用报价单_${dateStr}.${type}`;
+        const fileName = `${safeCompany}_整柜费用报价单_${dateStr}.${type}`;
 
         let blob;
         if (type === 'pdf') {
             const element = document.getElementById('capture-area-fcl');
-            const canvas = await html2canvas(element, { scale: 2.5, useCORS: true });
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('l', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = (canvas.height * pageWidth) / canvas.width;
-            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
-            blob = pdf.output('blob');
+            if (!element) { alert("未找到整柜预览区域"); return; }
+            try {
+                document.body.classList.add('exporting');
+                await new Promise(r => requestAnimationFrame(r));
+                const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+                const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('l', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = (canvas.height * pageWidth) / canvas.width;
+                pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+                blob = pdf.output('blob');
+            } catch (err) {
+                console.error(err);
+                alert("PDF 导出失败，请检查控制台错误信息");
+                return;
+            } finally {
+                document.body.classList.remove('exporting');
+            }
         } else {
             const mainRows = Array.from(document.querySelectorAll('#fclMainBody tr')).map((row) => {
                 const cells = Array.from(row.children);
