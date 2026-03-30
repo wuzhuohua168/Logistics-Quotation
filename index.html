@@ -108,6 +108,11 @@
         }
         .fcl-wrap { width: 1123px; min-height: 794px; padding: 40px 40px; }
         .hidden { display: none !important; }
+        .exporting .no-export { display: none !important; }
+        .exporting #capture-area button,
+        .exporting #capture-area-fcl button {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -338,17 +343,17 @@
                 <tr>
                     <td colspan="9" id="outFclDetail1Name" class="fcl-detail-name">-</td>
                     <td colspan="2" class="fcl-amount" id="outFclDetail1Amt">-</td>
-                    <td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>
+                    <td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>
                 </tr>
                 <tr>
                     <td colspan="9" id="outFclDetail2Name" class="fcl-detail-name">-</td>
                     <td colspan="2" class="fcl-amount" id="outFclDetail2Amt">-</td>
-                    <td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>
+                    <td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>
                 </tr>
                 <tr>
                     <td colspan="9" id="outFclDetail3Name" class="fcl-detail-name">-</td>
                     <td colspan="2" class="fcl-amount" id="outFclDetail3Amt">-</td>
-                    <td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>
+                    <td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>
                 </tr>
                 </tbody>
                 <tbody>
@@ -383,27 +388,37 @@
     const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 
     async function exportPdfFromElement(element, fileName, orientation = 'p') {
-        const scale = isIOS ? 1.5 : 2.5;
-        const canvas = await html2canvas(element, { scale, useCORS: true, backgroundColor: "#ffffff" });
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF(orientation, 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = (canvas.height * pageWidth) / canvas.width;
-        pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
-        const blob = pdf.output('blob');
+        if (!element) { alert("未找到预览区域"); return; }
+        try {
+            document.body.classList.add('exporting');
+            await new Promise(r => requestAnimationFrame(r));
+            const scale = isIOS ? 1.5 : 2.5;
+            const canvas = await html2canvas(element, { scale, useCORS: true, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL('image/jpeg', 0.92);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF(orientation, 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = (canvas.height * pageWidth) / canvas.width;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+            const blob = pdf.output('blob');
 
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
-            await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: fileName });
-            return;
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
+                await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: fileName });
+                return;
+            }
+            if (isIOS) {
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+                return;
+            }
+            downloadLocal(blob, fileName);
+        } catch (err) {
+            console.error(err);
+            alert("PDF 导出失败，请检查控制台错误信息");
+        } finally {
+            document.body.classList.remove('exporting');
         }
-        if (isIOS) {
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
-            return;
-        }
-        downloadLocal(blob, fileName);
     }
 
     function saveCache(type) {
@@ -793,7 +808,7 @@
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true" data-role="amount"></td>`,
-            `<td><div contenteditable="true" data-role="remark"></div><button type="button" onclick="removeFclRow(this)">删除</button></td>`
+            `<td><div contenteditable="true" data-role="remark"></div><button type="button" class="no-export" onclick="removeFclRow(this)">删除</button></td>`
         ];
         tr.innerHTML = cols.join("");
         body.appendChild(tr);
@@ -817,7 +832,7 @@
         tr.innerHTML = [
             `<td colspan="9" contenteditable="true" class="fcl-detail-name"></td>`,
             `<td colspan="2" class="fcl-amount" contenteditable="true"></td>`,
-            `<td colspan="2"><button type="button" onclick="removeFclDetailRow(this)">删除</button></td>`
+            `<td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>`
         ].join("");
         body.appendChild(tr);
     }
@@ -942,7 +957,8 @@
 
         const d = new Date();
         const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
-        const fileName = `${fclData.company}_整柜费用确认单_${dateStr}.${type}`;
+        const safeCompany = String(fclData.company || "").replace(/[\\/:*?"<>|]/g, "_").trim();
+        const fileName = `${safeCompany}整柜费用报价单${dateStr}.${type}`;
 
         let blob;
         if (type === 'pdf') {
