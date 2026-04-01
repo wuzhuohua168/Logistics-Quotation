@@ -392,8 +392,15 @@
             const blob = pdf.output('blob');
 
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
-                await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: fileName });
-                return;
+                try {
+                    await navigator.share({ files: [new File([blob], fileName, { type: blob.type })], title: fileName });
+                    return;
+                } catch (err) {
+                    if (err && err.name !== 'AbortError') {
+                        downloadLocal(blob, fileName);
+                    }
+                    return;
+                }
             }
             if (isIOS) {
                 const url = URL.createObjectURL(blob);
@@ -762,7 +769,7 @@
             { name: fclData.detail3Name, amt: fclData.detail3Amt }
         ]);
         if (rowAmount) document.getElementById('outFclAmount').innerText = rowAmount.toFixed(2);
-        const computedTotal = updateFclTotalFromRows();
+        const computedTotal = updateFclTotalFromRows(true);
         fclData.total = computedTotal;
         document.getElementById('outGenAtFcl').innerText = new Date().toLocaleString();
         saveCache('fcl');
@@ -790,7 +797,7 @@
         });
     }
 
-    function updateFclTotalFromRows() {
+    function updateFclTotalFromRows(resetManualDetails = false) {
         const rows = document.querySelectorAll('#fclMainBody tr');
         let total = 0;
         rows.forEach(r => {
@@ -807,6 +814,10 @@
             const cell = r.querySelector('.fcl-amount');
             if (cell) detailRowSum += parseNum(cell.textContent);
         });
+        if (resetManualDetails) {
+            // 点击“更新整柜预览”时，以手动输入明细为准，忽略已生成的明细行累加
+            detailRowSum = 0;
+        }
         total += inputAmount + detail1 + detail2 + detail3 + detailRowSum;
         const totalStr = total ? total.toFixed(2) : "";
         document.getElementById('outFclTotal').innerText = totalStr;
