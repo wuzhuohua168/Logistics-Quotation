@@ -221,7 +221,7 @@
         <div class="input-item"><label>电话</label><input type="text" id="fclPhone" placeholder="电话"></div>
         <div class="input-item"><label>装柜地址</label><input type="text" id="fclLoadAddr" placeholder="装柜地址"></div>
         <div class="input-item"><label>收件地址</label><input type="text" id="fclRecvAddr" placeholder="收件地址"></div>
-        <div class="input-item"><label>账单编号</label><input type="text" id="fclBillNo" placeholder="账单编号"></div>
+        <div class="input-item"><label>汇率</label><input type="text" id="fclBillNo" placeholder="汇率"></div>
         <div class="input-item"><label>币种</label><input type="text" id="fclCurrency" value="CNY"></div>
         <div class="input-item"><label>货物类型</label><input type="text" id="fclVessel" placeholder="货物类型"></div>
         <div class="input-item"><label>报价有效期</label><input type="text" id="fclBlNo" placeholder="报价有效期"></div>
@@ -298,7 +298,7 @@
                 <tr>
                     <th>收件地址</th>
                     <td colspan="5" id="outFclRecvAddr">-</td>
-                    <th>账单编号</th>
+                    <th>汇率</th>
                     <td colspan="4" id="outFclBillNo">-</td>
                     <th>币种</th>
                     <td id="outFclCurrency">CNY</td>
@@ -883,7 +883,7 @@
             phone: pick(/^\s*(?:电话|联系电话)[:：]?\s*([0-9\-+() ]{5,})/m),
             loadAddr: pick(/^\s*装柜地址[:：]?\s*([^\n]+)/m),
             recvAddr: pick(/^\s*收件地址[:：]?\s*([^\n]+)/m),
-            billNo: pick(/^\s*账单编号[:：]?\s*([^\s，,]+)/m),
+            billNo: pick(/^\s*汇率[:：]?\s*([^\s，,]+)/m),
             currency: pick(/^\s*币种[:：]?\s*([A-Z]{3})/m),
             vessel: pick(/^\s*货物类型[:：]?\s*([^\n]+)/m),
             blNo: pick(/^\s*报价有效期[:：]?\s*([^\s，,]+)/m),
@@ -900,7 +900,7 @@
         };
 
         const exclude = new Set([
-            "运输费用", "金额", "账单编号", "客户编码", "公司", "联系电话", "装柜地址", "收件地址",
+            "运输费用", "金额", "汇率", "客户编码", "公司", "联系电话", "装柜地址", "收件地址",
             "币种", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "箱数",
             "柜型", "额定装载（方）", "备注"
         ]);
@@ -998,7 +998,7 @@
                 mainRows.push([fclData.custCode, fclData.company, fclData.phone, fclData.loadAddr, fclData.recvAddr, fclData.billNo, fclData.currency, fclData.vessel, fclData.blNo, fclData.loadDate, fclData.pol, fclData.pod, fclData.sailDate, fclData.packages, fclData.container, fclData.cargoSize, fclData.transportFee, fclData.amount, fclData.remark]);
             }
             const csvRows = [
-                ["客户编码", "公司", "联系电话", "装柜地址", "收件地址", "账单编号", "币种", "序号", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "柜型", "额定装载（方）", "运输费用", "金额", "备注", "明细1", "明细1金额", "明细2", "明细2金额", "明细3", "明细3金额", "合计"],
+                ["客户编码", "公司", "联系电话", "装柜地址", "收件地址", "汇率", "币种", "序号", "货物类型", "报价有效期", "装柜日期", "起运港", "目的港", "开航日", "件数", "柜型", "额定装载（方）", "运输费用", "金额", "备注", "明细1", "明细1金额", "明细2", "明细2金额", "明细3", "明细3金额", "合计"],
                 ...mainRows.map(r => [...r, fclData.detail1Name, fclData.detail1Amt, fclData.detail2Name, fclData.detail2Amt, fclData.detail3Name, fclData.detail3Amt, fclData.total])
             ];
             const csvString = "\ufeff" + csvRows.map(row => row.map(v => `"${v}"`).join(",")).join("\n");
