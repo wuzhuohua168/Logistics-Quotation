@@ -756,6 +756,11 @@
         document.getElementById('outFclDetail2Amt').innerText = fclData.detail2Amt;
         document.getElementById('outFclDetail3Name').innerText = fclData.detail3Name;
         document.getElementById('outFclDetail3Amt').innerText = fclData.detail3Amt;
+        renderFclDetailRows([
+            { name: fclData.detail1Name, amt: fclData.detail1Amt },
+            { name: fclData.detail2Name, amt: fclData.detail2Amt },
+            { name: fclData.detail3Name, amt: fclData.detail3Amt }
+        ]);
         if (rowAmount) document.getElementById('outFclAmount').innerText = rowAmount.toFixed(2);
         const computedTotal = updateFclTotalFromRows();
         fclData.total = computedTotal;
@@ -766,6 +771,23 @@
     function parseNum(val) {
         const n = parseFloat(String(val || "").replace(/[^\d.]/g, ""));
         return Number.isFinite(n) ? n : 0;
+    }
+
+    function renderFclDetailRows(items) {
+        const body = document.getElementById('fclDetailBody');
+        if (!body) return;
+        const rows = Array.from(body.querySelectorAll('tr'));
+        rows.slice(1).forEach(r => r.remove()); // keep header
+        items.forEach(it => {
+            if (!it.name && !it.amt) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = [
+                `<td colspan="9" class="fcl-detail-name">${it.name || ""}</td>`,
+                `<td colspan="2" class="fcl-amount">${it.amt || ""}</td>`,
+                `<td colspan="2"></td>`
+            ].join("");
+            body.appendChild(tr);
+        });
     }
 
     function updateFclTotalFromRows() {
