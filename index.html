@@ -277,6 +277,7 @@
                     <col style="width:8%">
                     <col style="width:8%">
                     <col style="width:9%">
+                    <col style="width:6%">
                 </colgroup>
                 <tbody>
                 <tr>
@@ -315,6 +316,7 @@
                     <th>运输费用</th>
                     <th>金额</th>
                     <th>备注</th>
+                    <th>操作</th>
                 </tr>
                 </tbody>
                 <tbody id="fclMainBody">
@@ -332,6 +334,7 @@
                     <td id="outFclTransportFee">-</td>
                     <td id="outFclAmount" data-role="amount">-</td>
                     <td id="outFclRemark">-</td>
+                    <td class="no-export"></td>
                 </tr>
                 </tbody>
                 <tbody id="fclDetailBody">
@@ -339,26 +342,12 @@
                     <th colspan="9">服务类目</th>
                     <th colspan="2">金额</th>
                     <th colspan="2">备注</th>
-                </tr>
-                <tr>
-                    <td colspan="9" id="outFclDetail1Name" class="fcl-detail-name">-</td>
-                    <td colspan="2" class="fcl-amount" id="outFclDetail1Amt">-</td>
-                    <td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>
-                </tr>
-                <tr>
-                    <td colspan="9" id="outFclDetail2Name" class="fcl-detail-name">-</td>
-                    <td colspan="2" class="fcl-amount" id="outFclDetail2Amt">-</td>
-                    <td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>
-                </tr>
-                <tr>
-                    <td colspan="9" id="outFclDetail3Name" class="fcl-detail-name">-</td>
-                    <td colspan="2" class="fcl-amount" id="outFclDetail3Amt">-</td>
-                    <td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>
+                    <th>操作</th>
                 </tr>
                 </tbody>
                 <tbody>
                 <tr>
-                    <td colspan="10" class="fcl-amount" style="text-align:right;">合计（小写）：</td>
+                    <td colspan="11" class="fcl-amount" style="text-align:right;">合计（小写）：</td>
                     <td colspan="2" class="fcl-amount" id="outFclTotal">-</td>
                     <td></td>
                 </tr>
@@ -786,6 +775,11 @@
             const cell = r.querySelector('[data-role="amount"]');
             if (cell) total += parseNum(cell.textContent);
         });
+        const inputAmount = parseNum(document.getElementById('fclAmount')?.value);
+        const detail1 = parseNum(document.getElementById('fclDetail1Amt')?.value);
+        const detail2 = parseNum(document.getElementById('fclDetail2Amt')?.value);
+        const detail3 = parseNum(document.getElementById('fclDetail3Amt')?.value);
+        total += inputAmount + detail1 + detail2 + detail3;
         const totalStr = total ? total.toFixed(2) : "";
         document.getElementById('outFclTotal').innerText = totalStr;
         return totalStr;
@@ -808,7 +802,8 @@
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true"></td>`,
             `<td contenteditable="true" data-role="amount"></td>`,
-            `<td><div contenteditable="true" data-role="remark"></div><button type="button" class="no-export" onclick="removeFclRow(this)">删除</button></td>`
+            `<td><div contenteditable="true" data-role="remark"></div></td>`,
+            `<td class="no-export"><button type="button" class="no-export" onclick="removeFclRow(this)">删除</button></td>`
         ];
         tr.innerHTML = cols.join("");
         body.appendChild(tr);
@@ -832,7 +827,8 @@
         tr.innerHTML = [
             `<td colspan="9" contenteditable="true" class="fcl-detail-name"></td>`,
             `<td colspan="2" class="fcl-amount" contenteditable="true"></td>`,
-            `<td colspan="2"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>`
+            `<td colspan="2"></td>`,
+            `<td class="no-export"><button type="button" class="no-export" onclick="removeFclDetailRow(this)">删除</button></td>`
         ].join("");
         body.appendChild(tr);
     }
@@ -845,6 +841,9 @@
     document.addEventListener('input', (e) => {
         const inMain = e.target && e.target.closest && e.target.closest('#fclMainBody');
         if (inMain && e.target.matches('[data-role="amount"]')) updateFclTotalFromRows();
+        if (e.target && e.target.id && ['fclAmount','fclDetail1Amt','fclDetail2Amt','fclDetail3Amt'].includes(e.target.id)) {
+            updateFclTotalFromRows();
+        }
         const inAir = e.target && e.target.closest && e.target.closest('#airMainBody');
         if (inAir) updateAirSum();
     });
