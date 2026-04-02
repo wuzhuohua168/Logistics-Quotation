@@ -733,36 +733,33 @@
             total: ""
         };
 
-        document.getElementById('outCnFcl').innerText = document.getElementById('inCn').value || "深圳市恒基承达商务有限公司";
-        document.getElementById('outEnFcl').innerText = document.getElementById('inEn').value || "";
-        const phoneHeader = document.getElementById('outPhoneFcl');
-        if (phoneHeader) phoneHeader.innerText = fclData.phone;
+        const setText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+        setText('outCnFcl', document.getElementById('inCn').value || "深圳市恒基承达商务有限公司");
+        setText('outEnFcl', document.getElementById('inEn').value || "");
+        setText('outPhoneFcl', fclData.phone);
 
-        document.getElementById('outFclCustCode').innerText = fclData.custCode;
-        document.getElementById('outFclCompany').innerText = fclData.company;
-        document.getElementById('outFclLoadAddr').innerText = fclData.loadAddr;
-        document.getElementById('outFclPhone').innerText = fclData.phone;
-        document.getElementById('outFclRecvAddr').innerText = fclData.recvAddr;
-        document.getElementById('outFclBillNo').innerText = fclData.billNo;
-        document.getElementById('outFclCurrency').innerText = fclData.currency;
-        document.getElementById('outFclVessel').innerText = fclData.vessel;
-        document.getElementById('outFclBlNo').innerText = fclData.blNo;
-        document.getElementById('outFclLoadDate').innerText = fclData.loadDate;
-        document.getElementById('outFclPOL').innerText = fclData.pol;
-        document.getElementById('outFclPOD').innerText = fclData.pod;
-        document.getElementById('outFclSailDate').innerText = fclData.sailDate;
-        document.getElementById('outFclPackages').innerText = fclData.packages;
-        document.getElementById('outFclContainer').innerText = fclData.container;
-        document.getElementById('outFclCargoSize').innerText = fclData.cargoSize;
-        document.getElementById('outFclTransportFee').innerText = fclData.transportFee;
-        document.getElementById('outFclAmount').innerText = fclData.amount;
-        document.getElementById('outFclRemark').innerText = fclData.remark;
-        document.getElementById('outFclDetail1Name').innerText = fclData.detail1Name;
-        document.getElementById('outFclDetail1Amt').innerText = fclData.detail1Amt;
-        document.getElementById('outFclDetail2Name').innerText = fclData.detail2Name;
-        document.getElementById('outFclDetail2Amt').innerText = fclData.detail2Amt;
-        document.getElementById('outFclDetail3Name').innerText = fclData.detail3Name;
-        document.getElementById('outFclDetail3Amt').innerText = fclData.detail3Amt;
+        setText('outFclCustCode', fclData.custCode);
+        setText('outFclCompany', fclData.company);
+        setText('outFclLoadAddr', fclData.loadAddr);
+        setText('outFclPhone', fclData.phone);
+        setText('outFclRecvAddr', fclData.recvAddr);
+        setText('outFclBillNo', fclData.billNo);
+        setText('outFclCurrency', fclData.currency);
+        setText('outFclVessel', fclData.vessel);
+        setText('outFclBlNo', fclData.blNo);
+        setText('outFclLoadDate', fclData.loadDate);
+        setText('outFclPOL', fclData.pol);
+        setText('outFclPOD', fclData.pod);
+        setText('outFclSailDate', fclData.sailDate);
+        setText('outFclPackages', fclData.packages);
+        setText('outFclContainer', fclData.container);
+        setText('outFclCargoSize', fclData.cargoSize);
+        setText('outFclTransportFee', fclData.transportFee);
+        setText('outFclAmount', fclData.amount);
+        setText('outFclRemark', fclData.remark);
         renderFclDetailRows([
             { name: fclData.detail1Name, amt: fclData.detail1Amt },
             { name: fclData.detail2Name, amt: fclData.detail2Amt },
