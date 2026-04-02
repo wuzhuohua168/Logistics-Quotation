@@ -240,7 +240,7 @@
         <div class="input-item"><label>明细3（名称/金额）</label><input type="text" id="fclDetail3Name" placeholder="明细名称"><input type="number" id="fclDetail3Amt" placeholder="金额" style="margin-top:5px"></div>
     </div>
     <div class="action-area">
-        <button class="btn-preview" onclick="doUpdateFcl()">① 更新整柜预览</button>
+        <button class="btn-preview" onclick="doUpdateFcl({ preserveDetailRows: true })">① 更新整柜预览</button>
         <button class="btn-pdf" onclick="processFileFcl('pdf')">② 分享/下载 PDF</button>
         <button class="btn-csv" onclick="processFileFcl('csv')">③ 分享/下载 CSV</button>
         <button class="btn-preview btn-clear" onclick="clearCache('fcl')">清除缓存</button>
@@ -387,8 +387,18 @@
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF(orientation, 'mm', 'a4');
             const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = (canvas.height * pageWidth) / canvas.width;
-            pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgHeight = (canvas.height * pageWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+            pdf.addImage(imgData, 'JPEG', 0, position, pageWidth, imgHeight);
+            heightLeft -= pageHeight;
+            while (heightLeft > 0) {
+                position -= pageHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, position, pageWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
             const blob = pdf.output('blob');
 
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
@@ -628,7 +638,8 @@
         updateAirSum();
     }
 
-    function doUpdateFcl() {
+    function doUpdateFcl(options = {}) {
+        const { preserveDetailRows = false, resetDetailSum = true } = options;
         const smartText = document.getElementById('fclSmart').value || "";
         const smart = parseSmartFcl(smartText);
         // 将识别结果回填到输入框（不覆盖已有手动输入）
@@ -764,9 +775,9 @@
             { name: fclData.detail1Name, amt: fclData.detail1Amt },
             { name: fclData.detail2Name, amt: fclData.detail2Amt },
             { name: fclData.detail3Name, amt: fclData.detail3Amt }
-        ]);
+        ], preserveDetailRows);
         if (rowAmount) document.getElementById('outFclAmount').innerText = rowAmount.toFixed(2);
-        const computedTotal = updateFclTotalFromRows(true);
+        const computedTotal = updateFclTotalFromRows(resetDetailSum);
         fclData.total = computedTotal;
         document.getElementById('outGenAtFcl').innerText = new Date().toLocaleString();
         saveCache('fcl');
@@ -777,14 +788,21 @@
         return Number.isFinite(n) ? n : 0;
     }
 
-    function renderFclDetailRows(items) {
+    function renderFclDetailRows(items, preserveExisting = false) {
         const body = document.getElementById('fclDetailBody');
         if (!body) return;
         const rows = Array.from(body.querySelectorAll('tr'));
-        rows.slice(1).forEach(r => r.remove()); // keep header
+        if (preserveExisting) {
+            rows.slice(1).forEach(r => {
+                if (r.dataset && r.dataset.origin === "manual") r.remove();
+            });
+        } else {
+            rows.slice(1).forEach(r => r.remove()); // keep header
+        }
         items.forEach(it => {
             if (!it.name && !it.amt) return;
             const tr = document.createElement('tr');
+            tr.dataset.origin = "manual";
             tr.innerHTML = [
                 `<td colspan="9" class="fcl-detail-name">${it.name || ""}</td>`,
                 `<td colspan="2" class="fcl-amount">${it.amt || ""}</td>`,
@@ -872,6 +890,7 @@
     function addFclDetailRow() {
         const body = document.getElementById('fclDetailBody');
         const tr = document.createElement('tr');
+        tr.dataset.origin = "user";
         tr.innerHTML = [
             `<td colspan="9" contenteditable="true" class="fcl-detail-name"></td>`,
             `<td colspan="2" class="fcl-amount" contenteditable="true"></td>`,
@@ -1008,7 +1027,7 @@
 
     async function processFileFcl(type) {
         // 确保先刷新一次预览数据
-        doUpdateFcl();
+        doUpdateFcl({ preserveDetailRows: true, resetDetailSum: false });
         const hasData = [
             fclData.company, fclData.custCode, fclData.billNo, fclData.vessel,
             fclData.blNo, fclData.loadDate, fclData.pol, fclData.pod
