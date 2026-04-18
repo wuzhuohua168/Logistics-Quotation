@@ -256,8 +256,13 @@
         .quote-modal-card { width: min(1100px, 100%); height: min(78vh, 760px); background: var(--tesla-white); border-radius: 4px; border: 1px solid var(--tesla-cloud); overflow: hidden; display: flex; flex-direction: column; }
         .quote-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid var(--tesla-cloud); background: var(--tesla-white); }
         .quote-modal-title { font-size: 14px; font-weight: 500; color: var(--tesla-carbon); }
-        .quote-modal-body { flex: 1; background: var(--tesla-white); }
+        .quote-modal-body { flex: 1; background: var(--tesla-white); position: relative; }
         #quote-modal-frame { width: 100%; height: 100%; border: none; background: var(--tesla-white); display: block; }
+        .quote-modal-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--tesla-white); z-index: 10; }
+        .quote-modal-loading.hidden { display: none; }
+        .quote-modal-spinner { width: 40px; height: 40px; border: 3px solid var(--tesla-cloud); border-top-color: var(--tesla-blue); border-radius: 50%; animation: quote-spin 1s linear infinite; }
+        @keyframes quote-spin { to { transform: rotate(360deg); } }
+        .quote-modal-loading-text { margin-top: 12px; font-size: 13px; color: var(--tesla-graphite); }
         
         .tool-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .compact-tool { border: 1px solid var(--tesla-cloud); border-radius: 4px; padding: 14px; background: var(--tesla-white); }
@@ -927,6 +932,10 @@
                 <button class="btn-main" style="background:#95a5a6; padding:8px 12px; font-size:12px;" onclick="closeQuoteModal()">关闭</button>
             </div>
             <div class="quote-modal-body">
+                <div id="quote-modal-loading" class="quote-modal-loading">
+                    <div class="quote-modal-spinner"></div>
+                    <div class="quote-modal-loading-text">正在加载图表...</div>
+                </div>
                 <iframe id="quote-modal-frame" title="报价详情"></iframe>
             </div>
         </div>
@@ -7487,9 +7496,14 @@ function openQuoteModal(label, symbol) {
     const modal = document.getElementById('quote-modal');
     const title = document.getElementById('quote-modal-title');
     const frame = document.getElementById('quote-modal-frame');
+    const loading = document.getElementById('quote-modal-loading');
     if (!modal || !title || !frame) return;
     title.innerText = `${label} · 原页面`;
+    if (loading) loading.classList.remove('hidden');
     frame.src = buildQuoteModalUrl(label, symbol);
+    frame.onload = function() {
+        if (loading) loading.classList.add('hidden');
+    };
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
 }
@@ -7498,9 +7512,12 @@ function closeQuoteModal(event) {
     if (event && event.target && event.target !== event.currentTarget) return;
     const modal = document.getElementById('quote-modal');
     const frame = document.getElementById('quote-modal-frame');
+    const loading = document.getElementById('quote-modal-loading');
     if (!modal || !frame) return;
     modal.classList.remove('show');
     frame.src = 'about:blank';
+    frame.onload = null;
+    if (loading) loading.classList.remove('hidden');
     document.body.style.overflow = '';
 }
 
