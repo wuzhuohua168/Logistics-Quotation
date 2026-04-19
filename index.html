@@ -1330,8 +1330,8 @@
         </div>
         <!-- 搜索 + 状态筛选 -->
         <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <input type="text" id="crm-search" placeholder="搜索客户/订单号/航线…" oninput="crmRender()" style="flex:1; min-width:140px; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13px;">
-            <select id="crm-filter-status" onchange="crmRender()" style="padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:12px; background:#fff;">
+            <input type="text" id="crm-search" placeholder="搜索客户/订单号/航线…" oninput="crmRender()" style="flex:1; min-width:140px; padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:13px; background:var(--bg-primary); color:var(--text-primary);">
+            <select id="crm-filter-status" onchange="crmRender()" style="padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:12px; background:var(--bg-primary); color:var(--text-primary);">
                 <option value="">全部状态</option>
                 <option value="询价">询价</option>
                 <option value="已下单">已下单</option>
@@ -1453,15 +1453,15 @@
         <!-- 时间筛选 -->
         <div class="module-card" style="padding:10px 14px; margin-bottom:10px;">
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <span style="font-size:12px; color:#666;">统计周期:</span>
-                <select id="crm-stats-period" onchange="crmRenderStats()" style="padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:12px; background:#fff;">
+                <span style="font-size:12px; color:var(--text-secondary);">统计周期:</span>
+                <select id="crm-stats-period" onchange="crmRenderStats()" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:12px; background:var(--bg-primary); color:var(--text-primary);">
                     <option value="all">全部</option>
                     <option value="month">本月</option>
                     <option value="quarter">本季度</option>
                     <option value="year">本年</option>
                 </select>
-                <span style="font-size:12px; color:#666; margin-left:10px;">快捷筛选:</span>
-                <select id="crm-stats-filter" onchange="crmRenderStats()" style="padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:12px; background:#fff;">
+                <span style="font-size:12px; color:var(--text-secondary); margin-left:10px;">快捷筛选:</span>
+                <select id="crm-stats-filter" onchange="crmRenderStats()" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:12px; background:var(--bg-primary); color:var(--text-primary);">
                     <option value="all">全部</option>
                     <option value="profit">盈利订单</option>
                     <option value="loss">亏损订单</option>
@@ -2488,34 +2488,34 @@
         </div>
     </div>
 
+    <div class="module-card" style="padding:14px; margin-bottom:10px;">
+        <div style="font-size:13px; font-weight:bold; color:#2c3e50; margin-bottom:12px;">🚢 运输方式占比</div>
+        <canvas id="finance-chart-shipmode" style="max-height:200px;"></canvas>
+    </div>
+
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-        <div class="module-card" style="padding:14px;">
-            <div style="font-size:13px; font-weight:bold; color:#2c3e50; margin-bottom:12px;">🚢 运输方式占比</div>
-            <canvas id="finance-chart-shipmode" style="max-height:200px;"></canvas>
-        </div>
         <div class="module-card" style="padding:14px;">
             <div style="font-size:13px; font-weight:bold; color:#2c3e50; margin-bottom:12px;">👤 客户贡献TOP10</div>
             <canvas id="finance-chart-client" style="max-height:200px;"></canvas>
         </div>
-    </div>
-
-    <div class="module-card" style="padding:14px; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:bold; color:#2c3e50; margin-bottom:12px;">📋 客户贡献明细</div>
-        <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                <thead>
-                    <tr style="background:#f5f5f7;">
-                        <th style="padding:10px 8px; text-align:left; border-bottom:2px solid #e0e0e0;">排名</th>
-                        <th style="padding:10px 8px; text-align:left; border-bottom:2px solid #e0e0e0;">客户</th>
-                        <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">订单数</th>
-                        <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">应收</th>
-                        <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">应付</th>
-                        <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">毛利</th>
-                        <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">利润率</th>
-                    </tr>
-                </thead>
-                <tbody id="finance-client-table"></tbody>
-            </table>
+        <div class="module-card" style="padding:14px;">
+            <div style="font-size:13px; font-weight:bold; color:#2c3e50; margin-bottom:12px;">📋 客户贡献明细</div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead>
+                        <tr style="background:#f5f5f7;">
+                            <th style="padding:10px 8px; text-align:left; border-bottom:2px solid #e0e0e0;">排名</th>
+                            <th style="padding:10px 8px; text-align:left; border-bottom:2px solid #e0e0e0;">客户</th>
+                            <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">订单数</th>
+                            <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">应收</th>
+                            <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">应付</th>
+                            <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">毛利</th>
+                            <th style="padding:10px 8px; text-align:right; border-bottom:2px solid #e0e0e0;">利润率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="finance-client-table"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -6719,9 +6719,31 @@ function financeExportCSV() {
 }
 
 // 汇率转换功能
+const FALLBACK_RATES = {
+    USD: 1,
+    CNY: 7.24,
+    JPY: 149.5,
+    EUR: 0.92,
+    GBP: 0.79,
+    HKD: 7.82,
+    KRW: 1350,
+    SGD: 1.34,
+    AUD: 1.53,
+    CAD: 1.36,
+    CHF: 0.88,
+    THB: 35.8,
+    MYR: 4.72,
+    VND: 25400,
+    INR: 83.5,
+    PHP: 56.5,
+    TWD: 32.4,
+    NZD: 1.68
+};
+
 async function initRates() {
     const cached = localStorage.getItem('hcn_rates_cache');
-    const CACHE_EXPIRY = 6 * 60 * 60 * 1000; // 6小时过期
+    const CACHE_EXPIRY = 6 * 60 * 60 * 1000;
+    
     if (cached) {
         try {
             const obj = JSON.parse(cached);
@@ -6730,6 +6752,7 @@ async function initRates() {
                 setRateStatus('已加载缓存汇率');
                 convertRate('left');
                 convertTriple('JPY');
+                return;
             } else if (obj && obj.rates) {
                 localStorage.removeItem('hcn_rates_cache');
             }
@@ -6737,21 +6760,42 @@ async function initRates() {
             localStorage.removeItem('hcn_rates_cache');
         }
     }
+    
+    rates = { ...FALLBACK_RATES };
+    setRateStatus('使用离线汇率');
+    convertRate('left');
+    convertTriple('JPY');
+    
     try {
         setRateStatus('汇率更新中...');
-        const res = await fetch('https://api.frankfurter.app/latest?from=USD');
+        const res = await fetch('https://theratesapi.com/api/latest?base=USD', {
+            signal: AbortSignal.timeout(5000)
+        });
         const data = await res.json();
         if (data && data.rates) {
-            rates = data.rates;
+            rates = { ...FALLBACK_RATES, ...data.rates };
             localStorage.setItem('hcn_rates_cache', JSON.stringify({ ts: Date.now(), rates }));
             setRateStatus('汇率已更新');
             convertRate('left');
             convertTriple('JPY');
-        } else {
-            setRateStatus('汇率数据异常');
         }
     } catch (e) {
-        if (!rates.USD) setRateStatus('汇率获取失败');
+        try {
+            const res = await fetch('https://api.exchangerate.host/latest?base=USD', {
+                signal: AbortSignal.timeout(5000)
+            });
+            const data = await res.json();
+            if (data && data.rates) {
+                rates = { ...FALLBACK_RATES, ...data.rates };
+                localStorage.setItem('hcn_rates_cache', JSON.stringify({ ts: Date.now(), rates }));
+                setRateStatus('汇率已更新 (备用API)');
+                convertRate('left');
+                convertTriple('JPY');
+            }
+        } catch (e2) {
+            console.warn('汇率API暂不可用，使用离线汇率:', e2.message);
+            setRateStatus('离线汇率 (API暂不可用)');
+        }
     }
 }
 function convertRate(dir) {
@@ -6813,6 +6857,26 @@ async function loadJpyTrend(days) {
     trendDays = days;
     updateTrendButtons(days);
     setJpyTrendStatus('走势图加载中...');
+    
+    const cacheKey = `hcn_jpy_trend_${days}`;
+    const cached = localStorage.getItem(cacheKey);
+    const CACHE_EXPIRY = 2 * 60 * 60 * 1000;
+    
+    if (cached) {
+        try {
+            const obj = JSON.parse(cached);
+            if (obj && obj.points && obj.ts && (Date.now() - obj.ts < CACHE_EXPIRY)) {
+                trendPoints = obj.points;
+                drawJpyTrendChart(trendPoints);
+                updateTrendSummary(trendPoints);
+                setJpyTrendStatus(`近${days}天 JPY/CNY 历史汇率 (缓存)`);
+                return;
+            }
+        } catch (e) {
+            localStorage.removeItem(cacheKey);
+        }
+    }
+    
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - days + 1);
@@ -6820,8 +6884,10 @@ async function loadJpyTrend(days) {
     const endStr = formatDate(end);
 
     try {
-        const url = `https://api.frankfurter.app/${startStr}..${endStr}?from=JPY&to=CNY`;
-        const res = await fetch(url);
+        const url = `https://api.exchangerate.host/timeseries?base=JPY&symbols=CNY&start_date=${startStr}&end_date=${endStr}`;
+        const res = await fetch(url, {
+            signal: AbortSignal.timeout(10000)
+        });
         const data = await res.json();
         if (data && data.rates) {
             trendPoints = Object.entries(data.rates)
@@ -6829,6 +6895,8 @@ async function loadJpyTrend(days) {
                 .sort((a, b) => a.date.localeCompare(b.date));
             
             if (!trendPoints.length) throw new Error('empty trend data');
+            
+            localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), points: trendPoints }));
             drawJpyTrendChart(trendPoints);
             updateTrendSummary(trendPoints);
             setJpyTrendStatus(`近${days}天 JPY/CNY 历史汇率`);
@@ -6839,7 +6907,8 @@ async function loadJpyTrend(days) {
         trendPoints = [];
         clearTrendCanvas();
         setJpyTrendStatus('走势图加载失败');
-        document.getElementById('jpy-trend-summary').innerText = '历史汇率接口暂不可用';
+        document.getElementById('jpy-trend-summary').innerText = '历史汇率接口暂不可用，请稍后重试';
+        console.warn('汇率走势API暂不可用:', e.message);
     }
 }
 
@@ -7050,6 +7119,56 @@ function getInternationalHoliday(month, day) {
 }
 
 const MARKET_HOLIDAYS = {
+    2025: {
+        aShareClosed: {
+            '1-1': 'A股休市',
+            '1-2': 'A股休市',
+            '1-3': 'A股休市',
+            '1-28': 'A股休市',
+            '1-29': 'A股休市',
+            '1-30': 'A股休市',
+            '1-31': 'A股休市',
+            '2-1': 'A股休市',
+            '2-2': 'A股休市',
+            '2-3': 'A股休市',
+            '2-4': 'A股休市',
+            '4-4': 'A股休市',
+            '4-5': 'A股休市',
+            '4-6': 'A股休市',
+            '5-1': 'A股休市',
+            '5-2': 'A股休市',
+            '5-3': 'A股休市',
+            '5-4': 'A股休市',
+            '5-5': 'A股休市',
+            '5-31': 'A股休市',
+            '6-1': 'A股休市',
+            '6-2': 'A股休市',
+            '10-1': 'A股休市',
+            '10-2': 'A股休市',
+            '10-3': 'A股休市',
+            '10-4': 'A股休市',
+            '10-5': 'A股休市',
+            '10-6': 'A股休市',
+            '10-7': 'A股休市',
+            '10-8': 'A股休市'
+        },
+        usClosed: {
+            '1-1': '美股休市',
+            '1-20': '美股休市',
+            '2-17': '美股休市',
+            '4-18': '美股休市',
+            '5-26': '美股休市',
+            '6-19': '美股休市',
+            '7-4': '美股休市',
+            '9-1': '美股休市',
+            '11-27': '美股休市',
+            '12-25': '美股休市'
+        },
+        usEarlyClose: {
+            '11-28': '美股13:00收市',
+            '12-24': '美股13:00收市'
+        }
+    },
     2026: {
         aShareClosed: {
             '1-1': 'A股休市',
@@ -11561,13 +11680,13 @@ function crmRenderStats() {
         const rows = data.filter(r => (r.fees||{}).total || (r.costs||{})._total).sort((a,b)=>(b.etd||'').localeCompare(a.etd||''));
         if (!rows.length) { detailEl.innerHTML = '<div style="color:#bbb;font-size:12px;text-align:center;padding:16px;">暂无数据</div>'; return; }
         detailEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
-            <thead><tr style="background:#f0f6ff;">
-                <th style="padding:7px 6px;text-align:left;border-bottom:2px solid #dde8f4;color:#4a90e2;">客户</th>
-                <th style="padding:7px 6px;text-align:center;border-bottom:2px solid #dde8f4;color:#4a90e2;">ETD</th>
-                <th style="padding:7px 6px;text-align:right;border-bottom:2px solid #dde8f4;color:#27ae60;">应收</th>
-                <th style="padding:7px 6px;text-align:right;border-bottom:2px solid #dde8f4;color:#e67e22;">应付</th>
-                <th style="padding:7px 6px;text-align:right;border-bottom:2px solid #dde8f4;color:#1f7a5c;">毛利</th>
-                <th style="padding:7px 6px;text-align:center;border-bottom:2px solid #dde8f4;color:#1f7a5c;">利润率</th>
+            <thead><tr style="background:var(--bg-tertiary);">
+                <th style="padding:7px 6px;text-align:left;border-bottom:2px solid var(--border-color);color:#4a90e2;min-width:100px;">客户</th>
+                <th style="padding:7px 6px;text-align:center;border-bottom:2px solid var(--border-color);color:#4a90e2;">ETD</th>
+                <th style="padding:7px 6px;text-align:right;border-bottom:2px solid var(--border-color);color:#27ae60;">应收</th>
+                <th style="padding:7px 6px;text-align:right;border-bottom:2px solid var(--border-color);color:#e67e22;">应付</th>
+                <th style="padding:7px 6px;text-align:right;border-bottom:2px solid var(--border-color);color:#1f7a5c;">毛利</th>
+                <th style="padding:7px 6px;text-align:center;border-bottom:2px solid var(--border-color);color:#1f7a5c;">利润率</th>
             </tr></thead>
             <tbody>${rows.map((r,i)=>{
                 const rev  = (r.fees||{}).total||0;
@@ -11576,9 +11695,9 @@ function crmRenderStats() {
                 const mgn  = rev > 0 ? pft/rev : 0;
                 const pc   = pft >= 0 ? '#1f7a5c' : '#e74c3c';
                 const hasCost = (r.costs||{})._total;
-                return `<tr style="background:${i%2?'#f8fbff':'#fff'};">
-                    <td style="padding:7px 6px;font-weight:600;color:#2c3e50;">${r.client||'—'}</td>
-                    <td style="padding:7px 6px;text-align:center;color:#888;">${r.etd||'—'}</td>
+                return `<tr style="background:${i%2?'var(--bg-tertiary)':'var(--bg-primary)'};">
+                    <td style="padding:7px 6px;font-weight:600;color:var(--text-primary);">${r.client||'—'}</td>
+                    <td style="padding:7px 6px;text-align:center;color:var(--text-secondary);">${r.etd||'—'}</td>
                     <td style="padding:7px 6px;text-align:right;color:#2980b9;">¥${rev.toLocaleString()}</td>
                     <td style="padding:7px 6px;text-align:right;color:#e67e22;">${hasCost?'¥'+cost.toLocaleString():'—'}</td>
                     <td style="padding:7px 6px;text-align:right;font-weight:bold;color:${pc};">${hasCost?fmtM(pft):'—'}</td>
