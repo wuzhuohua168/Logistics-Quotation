@@ -6741,69 +6741,31 @@ const FALLBACK_RATES = {
 };
 
 async function initRates() {
-    const cached = localStorage.getItem('hcn_rates_cache');
-    const CACHE_EXPIRY = 6 * 60 * 60 * 1000;
-    
-    if (cached) {
-        try {
-            const obj = JSON.parse(cached);
-            if (obj && obj.rates && obj.ts && (Date.now() - obj.ts < CACHE_EXPIRY)) {
-                rates = obj.rates;
-                setRateStatus('已加载缓存汇率');
-                convertRate('left');
-                convertTriple('JPY');
-                return;
-            } else if (obj && obj.rates) {
-                localStorage.removeItem('hcn_rates_cache');
-            }
-        } catch (e) {
-            localStorage.removeItem('hcn_rates_cache');
-        }
-    }
-    
-    rates = { ...FALLBACK_RATES };
-    setRateStatus('使用离线汇率');
-    convertRate('left');
-    convertTriple('JPY');
-    
     try {
-        setRateStatus('汇率更新中...');
-        const res = await fetch('https://theratesapi.com/api/latest?base=USD', {
-            signal: AbortSignal.timeout(5000)
-        });
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
         const data = await res.json();
         if (data && data.rates) {
-            rates = { ...FALLBACK_RATES, ...data.rates };
+            rates = data.rates;
             localStorage.setItem('hcn_rates_cache', JSON.stringify({ ts: Date.now(), rates }));
-            setRateStatus('汇率已更新');
-            convertRate('left');
-            convertTriple('JPY');
         }
-    } catch (e) {
-        try {
-            const res = await fetch('https://api.exchangerate.host/latest?base=USD', {
-                signal: AbortSignal.timeout(5000)
-            });
-            const data = await res.json();
-            if (data && data.rates) {
-                rates = { ...FALLBACK_RATES, ...data.rates };
-                localStorage.setItem('hcn_rates_cache', JSON.stringify({ ts: Date.now(), rates }));
-                setRateStatus('汇率已更新 (备用API)');
-                convertRate('left');
-                convertTriple('JPY');
-            }
-        } catch (e2) {
-            console.warn('汇率API暂不可用，使用离线汇率:', e2.message);
-            setRateStatus('离线汇率 (API暂不可用)');
+    } catch(e) {}
+    if (!rates.USD) {
+        const cached = localStorage.getItem('hcn_rates_cache');
+        if (cached) {
+            try {
+                const obj = JSON.parse(cached);
+                if (obj && obj.rates) rates = obj.rates;
+            } catch(e) {}
         }
     }
+    if (!rates.USD) rates = { ...FALLBACK_RATES };
+    convertRate('left');
+    convertTriple('JPY');
+    const el = document.getElementById('rate-status');
+    if (el) el.innerText = rates.USD ? '汇率已加载' : '使用备用汇率';
 }
 function convertRate(dir) {
-    if(!rates.USD) {
-        setRateStatus('汇率未就绪，正在加载...');
-        initRates();
-        return;
-    }
+    if(!rates.USD) return;
     const from = document.getElementById('cur-left').value, to = document.getElementById('cur-right').value;
     const l = document.getElementById('val-left'), r = document.getElementById('val-right');
     if(dir === 'left') {
@@ -6820,15 +6782,10 @@ function convertRate(dir) {
 function setRateStatus(msg) {
     const el = document.getElementById('rate-status');
     if (el) el.innerText = msg;
-    updateDashboard();
 }
 
 function convertTriple(src) {
-    if(!rates.USD) {
-        setRateStatus('汇率未就绪，正在加载...');
-        initRates();
-        return;
-    }
+    if(!rates.USD) return;
     const jpyInput = document.getElementById('val-jpy-link');
     const cnyInput = document.getElementById('val-cny-link');
     const usdInput = document.getElementById('val-usd-link');
@@ -9290,8 +9247,8 @@ function showApiConfig() {
     
     let autoSyncValue = localStorage.getItem('crm_auto_sync');
     if (autoSyncValue === null) {
-        localStorage.setItem('crm_auto_sync', 'true');
-        autoSyncValue = 'true';
+        localStorage.setItem('crm_auto_sync', 'false');
+        autoSyncValue = 'false';
     }
     const autoSync = autoSyncValue === 'true';
     document.getElementById('config-auto-sync').checked = autoSync;
